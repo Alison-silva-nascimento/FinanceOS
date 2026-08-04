@@ -10,7 +10,7 @@ from services.cartoes_service import (
     calcular_kpis
 )
 from auth import exigir_login
-from database.db import adicionar_compra_cartao, fatura_cartao, listar_compras_cartao
+from database.db import adicionar_compra_cartao, fatura_cartao, fatura_cartao_mes, listar_bancos, listar_compras_cartao, pagar_fatura
 
 # =====================================================
 # MODAL EDITAR
@@ -234,6 +234,20 @@ st.markdown("""
     font-size:13px;
 
 }
+
+.cards-section{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:30px 0 14px;
+    padding:15px 18px;
+    border:1px solid rgba(148,163,184,.22);
+    border-radius:15px;
+    background:linear-gradient(100deg,rgba(30,41,59,.7),rgba(15,23,42,.5));
+}
+.cards-section__icon{font-size:24px;}
+.cards-section__title{font-size:18px;font-weight:750;}
+.cards-section__text{font-size:13px;color:#aab6cf;margin-top:2px;}
 
 </style>
 """, unsafe_allow_html=True)
@@ -499,7 +513,7 @@ if modal_editar.is_open():
 # CARTÕES CADASTRADOS
 # =====================================================
 
-st.subheader("💳 Meus cartões")
+st.markdown('<div class="cards-section"><div class="cards-section__icon">💳</div><div><div class="cards-section__title">Meus cartões</div><div class="cards-section__text">Limites, vencimentos e utilização por cartão.</div></div></div>', unsafe_allow_html=True)
 
 if not cartoes:
 
@@ -511,7 +525,7 @@ else:
 
     for i, cartao in enumerate(cartoes):
 
-        utilizado = 0.0  # futuramente virá das despesas
+        utilizado = fatura_cartao(cartao["id"])
 
         disponivel = cartao["limite"] - utilizado
 
@@ -660,7 +674,7 @@ R$ {cartao["limite"]:,.2f}
                  st.rerun()
 
 st.divider()
-st.subheader("🧾 Compras e faturas")
+st.markdown('<div class="cards-section"><div class="cards-section__icon">🧾</div><div><div class="cards-section__title">Compras e faturas</div><div class="cards-section__text">Registre compras ou consulte cada fatura em aberto.</div></div></div>', unsafe_allow_html=True)
 if cartoes:
     opcoes_cartao = {f"{c['nome']} · limite {c['limite']:,.2f}": c["id"] for c in cartoes}
     with st.form("nova_compra_cartao", clear_on_submit=True):
@@ -676,5 +690,19 @@ if cartoes:
         if compras:
             with st.expander(f"{nome} · fatura em aberto: R$ {fatura_cartao(id_cartao):,.2f}"):
                 for compra in compras: st.write(f"{compra['data']} · {compra['descricao']} — R$ {compra['valor']/compra['parcelas']:,.2f} ({compra['parcelas']}x)")
+
+st.markdown('<div class="cards-section"><div class="cards-section__icon">✅</div><div><div class="cards-section__title">Pagamento de fatura</div><div class="cards-section__text">Quite a fatura usando uma conta bancária cadastrada.</div></div></div>', unsafe_allow_html=True)
+bancos = listar_bancos()
+if cartoes and bancos:
+    mes_fatura = st.text_input("Competência da fatura", value=__import__('datetime').date.today().strftime('%Y-%m'))
+    cartao_pagamento = st.selectbox("Cartão para pagamento", list(opcoes_cartao), key="cartao_pagamento")
+    valor_fatura = fatura_cartao_mes(opcoes_cartao[cartao_pagamento], mes_fatura)
+    conta_pagamento = st.selectbox("Pagar pela conta", [f"{b['nome']} · R$ {b['saldo']:,.2f}" for b in bancos])
+    if st.button(f"Pagar fatura de R$ {valor_fatura:,.2f}", disabled=valor_fatura <= 0, use_container_width=True):
+        try:
+            banco_id = bancos[[f"{b['nome']} · R$ {b['saldo']:,.2f}" for b in bancos].index(conta_pagamento)]['id']
+            pagar_fatura(opcoes_cartao[cartao_pagamento], mes_fatura, banco_id, valor_fatura, str(__import__('datetime').date.today()))
+            st.success("Fatura paga e saldo da conta atualizado."); st.rerun()
+        except ValueError as erro: st.error(str(erro))
 
 

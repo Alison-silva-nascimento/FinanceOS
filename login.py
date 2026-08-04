@@ -1,7 +1,6 @@
 import streamlit as st
-from time import time
 
-from auth import autenticar, criar_usuario, possui_usuario
+from auth import autenticar, criar_usuario, login_bloqueado, possui_usuario, registrar_falha_login
 
 
 def tela_login():
@@ -160,8 +159,11 @@ def tela_login():
                 else:
                     sucesso, mensagem = criar_usuario(nome, usuario, senha)
                     if sucesso:
+                        perfil = autenticar(usuario, senha)
                         st.session_state.logado = True
                         st.session_state.usuario = usuario.strip()
+                        st.session_state.usuario_id = perfil["id"]
+                        st.session_state.perfil = perfil["perfil"]
                         st.rerun()
                     st.error(mensagem) if not sucesso else None
             st.markdown(
@@ -176,21 +178,17 @@ def tela_login():
             entrar = st.form_submit_button("Entrar", use_container_width=True)
 
         if entrar:
-            bloqueado_ate = st.session_state.get("bloqueado_ate", 0)
-            if time() < bloqueado_ate:
-                st.error("Muitas tentativas. Aguarde um minuto e tente novamente.")
-            elif autenticar(usuario, senha):
+            if login_bloqueado(usuario):
+                st.error("Esta conta está temporariamente bloqueada. Aguarde 10 minutos e tente novamente.")
+            elif perfil := autenticar(usuario, senha):
                 st.session_state.logado = True
                 st.session_state.usuario = usuario.strip()
-                st.session_state.tentativas_login = 0
+                st.session_state.usuario_id = perfil["id"]
+                st.session_state.perfil = perfil["perfil"]
                 st.rerun()
             else:
-                tentativas = st.session_state.get("tentativas_login", 0) + 1
-                st.session_state.tentativas_login = tentativas
-                if tentativas >= 5:
-                    st.session_state.bloqueado_ate = time() + 60
-                    st.session_state.tentativas_login = 0
-                    st.error("Muitas tentativas. Aguarde um minuto e tente novamente.")
+                if registrar_falha_login(usuario):
+                    st.error("Muitas tentativas. Esta conta foi bloqueada por 10 minutos.")
                 else:
                     st.error("Usuário ou senha inválidos.")
 

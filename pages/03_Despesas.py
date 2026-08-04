@@ -294,7 +294,7 @@ if pesquisa:
 
         d for d in despesas
 
-        if pesquisa in d["descricao"].lower()
+        if pesquisa in (d["descricao"] or "").lower()
 
         or pesquisa in d["categoria"].lower()
 
