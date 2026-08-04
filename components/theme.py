@@ -60,6 +60,7 @@ def aplicar_tema():
         *:focus-visible { outline:3px solid rgba(96,165,250,.55) !important; outline-offset:2px; }
         hr { border-color:var(--border) !important; }
         [data-testid="stPlotlyChart"] { padding:.6rem; border:1px solid var(--border); border-radius:16px; background:rgba(15,23,42,.45); }
+        .st-key-mobile-nav { display:none; }
         /* Layout mobile-first: cada grupo de colunas vira uma sequência vertical. */
         @media (max-width: 768px) {
             html, body, [data-testid="stAppViewContainer"], section.main {
@@ -103,6 +104,18 @@ def aplicar_tema():
             .stButton > button, [data-testid="stFormSubmitButton"] > button { min-height:3rem; font-size:.98rem; }
             [data-testid="stDataFrame"] { overflow-x:auto; }
             [data-testid="stSidebar"] { min-width:min(82vw, 320px) !important; }
+            /* No celular, o menu nativo é substituído por uma versão curta e agrupada. */
+            [data-testid="stSidebarNav"] { display:none !important; }
+            .st-key-mobile-nav { display:block; padding:.35rem .15rem 1rem; }
+            .st-key-mobile-nav [data-testid="stPageLink"] { margin:.1rem 0; }
+            .st-key-mobile-nav [data-testid="stPageLink"] a { min-height:2.75rem !important; padding:.55rem .7rem !important; border:0; background:transparent; box-shadow:none; }
+            .st-key-mobile-nav [data-testid="stPageLink"] a:hover { background:rgba(59,130,246,.15); transform:none; }
+            .st-key-mobile-nav [data-testid="stExpander"] { margin-top:.6rem; padding:.15rem .7rem; border-radius:12px !important; box-shadow:none; }
+            .st-key-mobile-nav [data-testid="stExpander"] summary { color:#cbd5e1; }
+            .st-key-mobile-nav [data-testid="stExpander"] [data-testid="stPageLink"] a { min-height:2.45rem !important; }
+            .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+            .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:calc(50% - .35rem) !important; flex:0 0 calc(50% - .35rem) !important; }
+            .st-key-quick-actions [data-testid="stPageLink"] a { min-height:2.85rem !important; padding:.55rem .65rem !important; font-size:.86rem; }
         }
 
         @media (max-width: 420px) {
@@ -118,3 +131,29 @@ def aplicar_tema():
         """,
         unsafe_allow_html=True,
     )
+    _renderizar_navegacao_mobile()
+
+
+def _renderizar_navegacao_mobile():
+    """Atalhos compactos exibidos somente por CSS em telas pequenas."""
+    with st.sidebar:
+        with st.container(key="mobile-nav"):
+            st.page_link("pages/00_👤_Perfil.py", label="Perfil", icon="👤")
+            st.page_link("app.py", label="Início", icon="⌂")
+            st.page_link("pages/01_Dashboard.py", label="Análises", icon="📊")
+            st.page_link("pages/02_Receitas.py", label="Receitas", icon="💰")
+            st.page_link("pages/03_Despesas.py", label="Despesas", icon="💸")
+            st.page_link("pages/04_Cartoes.py", label="Cartões", icon="💳")
+            st.page_link("pages/04_Controle_de_gastos.py", label="Controle de gastos", icon="🎯")
+            with st.expander("Mais opções"):
+                st.page_link("pages/05_Bancos.py", label="Bancos", icon="🏦")
+                st.page_link("pages/06_Patrimonio.py", label="Patrimônio", icon="🏠")
+                st.page_link("pages/07_Metas.py", label="Metas", icon="🎯")
+                st.page_link("pages/08_Configuracoes.py", label="Configurações", icon="⚙️")
+                st.page_link("pages/09_Orcamentos.py", label="Orçamentos", icon="🧾")
+                st.page_link("pages/10_Recorrencias.py", label="Recorrências", icon="🔁")
+                st.page_link("pages/11_Transferencias.py", label="Transferências", icon="↔️")
+                st.page_link("pages/12_Holerite.py", label="Holerite", icon="📄")
+                st.page_link("pages/13_Conciliação.py", label="Conciliação", icon="✓")
+                st.page_link("pages/14_Relatórios.py", label="Relatórios", icon="📈")
+                st.page_link("pages/16_Importar_fatura.py", label="Importar fatura", icon="📥")
