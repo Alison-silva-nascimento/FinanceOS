@@ -10,6 +10,25 @@ if not st.session_state.logado:
     tela_login()
 
     st.stop()
+
+if not st.session_state.get("logado", False):
+
+    st.markdown("""
+    <style>
+
+    section[data-testid="stSidebar"]{
+        display:none;
+    }
+
+    header[data-testid="stHeader"]{
+        display:none;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+    tela_login()
+    st.stop()
     
 # ==========================================================
 # CONFIGURAÇÃO
