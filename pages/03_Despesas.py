@@ -22,9 +22,11 @@ from services.despesas_service import (
 )
 
 from components.cards import kpi_card
+from components.theme import aplicar_tema
+from auth import exigir_login
 
-
-st.write("Página carregou")
+aplicar_tema()
+exigir_login()
 
 # ==========================================
 # MODAL DE EDIÇÃO

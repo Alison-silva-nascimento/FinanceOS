@@ -21,7 +21,12 @@ from services.receitas_service import (
 )
 
 from components.cards import kpi_card
+from components.theme import aplicar_tema
 from datetime import datetime
+from auth import exigir_login
+
+aplicar_tema()
+exigir_login()
 
 # ==========================================
 # MODAL DE EDIÇÃO

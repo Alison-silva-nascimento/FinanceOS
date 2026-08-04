@@ -1,4 +1,6 @@
 import sqlite3
+import calendar
+from datetime import date
 from pathlib import Path
 
 # ==========================================
@@ -59,38 +61,65 @@ def criar_banco():
     )
 """)
 
+    # Usuários autenticados. Senhas são armazenadas apenas como hash.
     cursor.execute("""
-
-    CREATE TABLE IF NOT EXISTS usuarios(
-
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT,
-        usuario TEXT UNIQUE,
-        senha TEXT
-
-    )
-
+        CREATE TABLE IF NOT EXISTS usuarios(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            usuario TEXT NOT NULL UNIQUE,
+            senha_hash TEXT NOT NULL,
+            criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
     """)
 
-    total = cursor.execute("""
-        SELECT COUNT(*)
-        FROM usuarios
-        """).fetchone()[0]
+    # Atualiza instalações antigas que possuíam a tabela de usuários sem hash.
+    colunas_usuarios = {
+        linha["name"] for linha in cursor.execute("PRAGMA table_info(usuarios)")
+    }
+    if "senha_hash" not in colunas_usuarios:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN senha_hash TEXT")
 
-    if total == 0:
+    # BANCOS
 
-            cursor.execute("""
-            INSERT INTO usuarios (
-                nome,
-                usuario,
-                senha
-            )
-            VALUES (?, ?, ?)
-            """, (
-                "Administrador",
-                "admin",
-                "Un1Su1@@lg"
-            ))   
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bancos(
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        nome TEXT NOT NULL,
+
+        banco TEXT NOT NULL,
+
+        tipo TEXT NOT NULL,
+
+        saldo REAL NOT NULL,
+
+        cor TEXT DEFAULT '#2563EB'
+
+)
+""")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS orcamentos(
+        id INTEGER PRIMARY KEY, categoria TEXT NOT NULL, mes TEXT NOT NULL,
+        limite REAL NOT NULL, UNIQUE(categoria, mes))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS metas(
+        id INTEGER PRIMARY KEY, nome TEXT NOT NULL, valor_alvo REAL NOT NULL,
+        valor_atual REAL NOT NULL DEFAULT 0, prazo TEXT, cor TEXT DEFAULT '#3B82F6')""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS patrimonio(
+        id INTEGER PRIMARY KEY, nome TEXT NOT NULL, tipo TEXT NOT NULL,
+        categoria TEXT, valor REAL NOT NULL, atualizado_em TEXT NOT NULL)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS recorrencias(
+        id INTEGER PRIMARY KEY, tipo TEXT NOT NULL, categoria TEXT NOT NULL,
+        descricao TEXT, valor REAL NOT NULL, dia INTEGER NOT NULL,
+        ativa INTEGER NOT NULL DEFAULT 1, ultimo_mes TEXT)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS compras_cartao(
+        id INTEGER PRIMARY KEY, cartao_id INTEGER NOT NULL, data TEXT NOT NULL,
+        descricao TEXT NOT NULL, categoria TEXT NOT NULL, valor REAL NOT NULL,
+        parcelas INTEGER NOT NULL DEFAULT 1, parcela_atual INTEGER NOT NULL DEFAULT 1,
+        paga INTEGER NOT NULL DEFAULT 0)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS transferencias(
+        id INTEGER PRIMARY KEY, data TEXT NOT NULL, origem_id INTEGER NOT NULL,
+        destino_id INTEGER NOT NULL, valor REAL NOT NULL, descricao TEXT)""")
     
 
     conn.commit()
@@ -367,10 +396,6 @@ def quantidade_despesas():
 
     return quantidade
 
-if __name__ == "__main__":
-    criar_banco()
-    print("Banco atualizado!")
-
 # ==========================================
 # CARTÕES
 # ==========================================
@@ -522,3 +547,233 @@ def limite_total():
 
     return total
 
+# ==========================================
+# BANCOS
+# ==========================================
+
+def adicionar_banco(nome, banco, tipo, saldo, cor):
+
+    conn = conectar()
+
+    conn.execute("""
+        INSERT INTO bancos
+        (
+            nome,
+            banco,
+            tipo,
+            saldo,
+            cor
+        )
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        nome,
+        banco,
+        tipo,
+        saldo,
+        cor
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+def listar_bancos():
+
+    conn = conectar()
+
+    dados = conn.execute("""
+        SELECT *
+        FROM bancos
+        ORDER BY nome
+    """).fetchall()
+
+    conn.close()
+
+    return dados
+
+
+def obter_banco(id_banco):
+
+    conn = conectar()
+
+    banco = conn.execute("""
+        SELECT *
+        FROM bancos
+        WHERE id=?
+    """, (id_banco,)).fetchone()
+
+    conn.close()
+
+    return banco
+
+
+def editar_banco(
+    id_banco,
+    nome,
+    banco,
+    tipo,
+    saldo,
+    cor
+):
+
+    conn = conectar()
+
+    conn.execute("""
+        UPDATE bancos
+        SET
+            nome=?,
+            banco=?,
+            tipo=?,
+            saldo=?,
+            cor=?
+        WHERE id=?
+    """, (
+        nome,
+        banco,
+        tipo,
+        saldo,
+        cor,
+        id_banco
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+def excluir_banco(id_banco):
+
+    conn = conectar()
+
+    conn.execute("""
+        DELETE FROM bancos
+        WHERE id=?
+    """, (id_banco,))
+
+    conn.commit()
+    conn.close()
+
+
+def quantidade_bancos():
+
+    conn = conectar()
+
+    total = conn.execute("""
+        SELECT COUNT(*)
+        FROM bancos
+    """).fetchone()[0]
+
+    conn.close()
+
+    return total
+
+
+def saldo_total_bancos():
+
+    conn = conectar()
+
+    total = conn.execute("""
+        SELECT COALESCE(SUM(saldo),0)
+        FROM bancos
+    """).fetchone()[0]
+
+    conn.close()
+
+    return total
+
+
+# Garante que uma instalação nova tenha as tabelas necessárias antes de
+# qualquer página consultar ou gravar dados.
+criar_banco()
+
+
+if __name__ == "__main__":
+    print("Banco atualizado!")
+
+
+def listar_despesas_mes(mes):
+    return [d for d in listar_despesas() if str(d["data"]).startswith(mes)]
+
+
+def salvar_orcamento(categoria, mes, limite):
+    conn = conectar(); conn.execute("INSERT INTO orcamentos(categoria,mes,limite) VALUES(?,?,?) ON CONFLICT(categoria,mes) DO UPDATE SET limite=excluded.limite", (categoria, mes, limite)); conn.commit(); conn.close()
+
+
+def listar_orcamentos(mes):
+    conn = conectar(); dados = conn.execute("SELECT * FROM orcamentos WHERE mes=? ORDER BY categoria", (mes,)).fetchall(); conn.close(); return dados
+
+
+def adicionar_meta(nome, valor_alvo, prazo, cor):
+    conn = conectar(); conn.execute("INSERT INTO metas(nome,valor_alvo,prazo,cor) VALUES(?,?,?,?)", (nome, valor_alvo, prazo, cor)); conn.commit(); conn.close()
+
+
+def listar_metas():
+    conn = conectar(); dados = conn.execute("SELECT * FROM metas ORDER BY prazo", ()).fetchall(); conn.close(); return dados
+
+
+def aportar_meta(id_meta, valor):
+    conn = conectar(); conn.execute("UPDATE metas SET valor_atual=valor_atual+? WHERE id=?", (valor, id_meta)); conn.commit(); conn.close()
+
+
+def adicionar_patrimonio(nome, tipo, categoria, valor, data):
+    conn = conectar(); conn.execute("INSERT INTO patrimonio(nome,tipo,categoria,valor,atualizado_em) VALUES(?,?,?,?,?)", (nome, tipo, categoria, valor, data)); conn.commit(); conn.close()
+
+
+def listar_patrimonio():
+    conn = conectar(); dados = conn.execute("SELECT * FROM patrimonio ORDER BY tipo,nome").fetchall(); conn.close(); return dados
+
+
+def adicionar_recorrencia(tipo, categoria, descricao, valor, dia):
+    conn = conectar(); conn.execute("INSERT INTO recorrencias(tipo,categoria,descricao,valor,dia) VALUES(?,?,?,?,?)", (tipo,categoria,descricao,valor,dia)); conn.commit(); conn.close()
+
+
+def listar_recorrencias():
+    conn = conectar(); dados = conn.execute("SELECT * FROM recorrencias WHERE ativa=1 ORDER BY dia").fetchall(); conn.close(); return dados
+
+
+def proximos_vencimentos(limite=5):
+    """Calcula a próxima ocorrência real de cada despesa recorrente."""
+    hoje = date.today()
+    vencimentos = []
+    for item in listar_recorrencias():
+        if item["tipo"] != "Despesa":
+            continue
+        ano, mes = hoje.year, hoje.month
+        dia = min(int(item["dia"]), calendar.monthrange(ano, mes)[1])
+        vencimento = date(ano, mes, dia)
+        if vencimento < hoje:
+            ano, mes = (ano + 1, 1) if mes == 12 else (ano, mes + 1)
+            dia = min(int(item["dia"]), calendar.monthrange(ano, mes)[1])
+            vencimento = date(ano, mes, dia)
+        vencimentos.append({"data": vencimento, "descricao": item["descricao"], "categoria": item["categoria"], "valor": item["valor"]})
+    return sorted(vencimentos, key=lambda item: item["data"])[:limite]
+
+
+def gerar_recorrencias(mes):
+    conn = conectar(); itens = conn.execute("SELECT * FROM recorrencias WHERE ativa=1 AND (ultimo_mes IS NULL OR ultimo_mes != ?)", (mes,)).fetchall()
+    for item in itens:
+        ano, numero_mes = map(int, mes.split("-"))
+        dia_real = min(int(item["dia"]), calendar.monthrange(ano, numero_mes)[1])
+        data = f"{mes}-{dia_real:02d}"
+        tabela = "receitas" if item["tipo"] == "Receita" else "despesas"
+        conn.execute(f"INSERT INTO {tabela}(data,categoria,descricao,valor) VALUES(?,?,?,?)", (data,item["categoria"],item["descricao"],item["valor"]))
+        conn.execute("UPDATE recorrencias SET ultimo_mes=? WHERE id=?", (mes,item["id"]))
+    conn.commit(); conn.close(); return len(itens)
+
+
+def transferir(data, origem_id, destino_id, valor, descricao):
+    conn = conectar()
+    try:
+        conn.execute("UPDATE bancos SET saldo=saldo-? WHERE id=?", (valor, origem_id)); conn.execute("UPDATE bancos SET saldo=saldo+? WHERE id=?", (valor, destino_id)); conn.execute("INSERT INTO transferencias(data,origem_id,destino_id,valor,descricao) VALUES(?,?,?,?,?)", (data,origem_id,destino_id,valor,descricao)); conn.commit()
+    finally: conn.close()
+
+
+def adicionar_compra_cartao(cartao_id, data, descricao, categoria, valor, parcelas):
+    conn = conectar(); conn.execute("INSERT INTO compras_cartao(cartao_id,data,descricao,categoria,valor,parcelas) VALUES(?,?,?,?,?,?)", (cartao_id,data,descricao,categoria,valor,parcelas)); conn.commit(); conn.close()
+
+
+def listar_compras_cartao(cartao_id):
+    conn = conectar(); dados = conn.execute("SELECT * FROM compras_cartao WHERE cartao_id=? ORDER BY data DESC", (cartao_id,)).fetchall(); conn.close(); return dados
+
+
+def fatura_cartao(cartao_id):
+    conn = conectar(); total = conn.execute("SELECT COALESCE(SUM(valor/parcelas),0) FROM compras_cartao WHERE cartao_id=? AND paga=0", (cartao_id,)).fetchone()[0]; conn.close(); return total
