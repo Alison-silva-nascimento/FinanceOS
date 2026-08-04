@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 
-from config import LAYOUT, PAGE_ICON, PAGE_TITLE, SIDEBAR_STATE
+from config import APP_NAME, APP_VERSION, AUTHOR, LAYOUT, PAGE_ICON, PAGE_TITLE, SIDEBAR_STATE
 from components.theme import aplicar_tema
 from database.db import criar_banco
 from login import tela_login
@@ -34,10 +34,12 @@ with st.sidebar:
 # ==========================================================
 hora = datetime.now().hour
 
-if hora < 12:
+if 7 <= hora <= 11:
     saudacao = "☀️ Bom dia"
-elif hora < 18:
-    saudacao = "🌤 Boa tarde"
+
+elif 12 <= hora <= 18:
+    saudacao = "🌤️ Boa tarde"
+
 else:
     saudacao = "🌙 Boa noite"
 
@@ -174,7 +176,7 @@ with col1:
 
     st.title("💰 FinanceOS")
 
-    st.caption("Versão 0.1.0 Alpha")
+    st.caption(f"Versão {APP_VERSION} Alpha")
 
 with col2:
 
@@ -196,7 +198,7 @@ st.markdown(f"""
 
 <div class="hero">
 
-<h1>{saudacao}, Alison 👋</h1>
+<h1>{saudacao}, {st.session_state.get('usuario', '')} 👋</h1>
 
 <p>
 
@@ -605,7 +607,7 @@ with s1:
 
         "Versão",
 
-        "0.1.0"
+        APP_VERSION
 
     )
 
@@ -766,10 +768,10 @@ info1, info2, info3 = st.columns(3)
 with info1:
 
     st.info(
-        """
+        f"""
 ### 👨‍💻 Desenvolvedor
 
-Alison S. Nascimento
+{AUTHOR}
 """
     )
 
@@ -792,12 +794,12 @@ Plotly
 with info3:
 
     st.warning(
-        """
+        f"""
 ### 📦 Versão
 
-FinanceOS
+{APP_NAME}
 
-v0.1.0 Alpha
+v{APP_VERSION} Alpha
 """
     )
 
@@ -808,21 +810,21 @@ st.divider()
 # ==========================================================
 
 st.markdown(
-    """
+    f"""
 <div class="footer">
 
-<h3>💰 FinanceOS</h3>
+<h3>💰 {APP_NAME}</h3>
 
 <p>
 Sistema de Gestão Financeira Pessoal
 </p>
 
 <p>
-Versão <b>0.1.0 Alpha</b>
+Versão <b>{APP_VERSION} Alpha</b>
 </p>
 
 <p>
-Desenvolvido por <b>Alison S. Nascimento</b>
+Desenvolvido por <b>{AUTHOR}</b>
 </p>
 
 <br>
