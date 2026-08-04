@@ -139,7 +139,7 @@ def _renderizar_navegacao_mobile():
     with st.sidebar:
         with st.container(key="mobile-nav"):
             st.page_link("pages/00_👤_Perfil.py", label="Perfil", icon="👤")
-            st.page_link("app.py", label="Início", icon="⌂")
+            st.page_link("app.py", label="Início", icon="🏠")
             st.page_link("pages/01_Dashboard.py", label="Análises", icon="📊")
             st.page_link("pages/02_Receitas.py", label="Receitas", icon="💰")
             st.page_link("pages/03_Despesas.py", label="Despesas", icon="💸")
@@ -154,6 +154,6 @@ def _renderizar_navegacao_mobile():
                 st.page_link("pages/10_Recorrencias.py", label="Recorrências", icon="🔁")
                 st.page_link("pages/11_Transferencias.py", label="Transferências", icon="↔️")
                 st.page_link("pages/12_Holerite.py", label="Holerite", icon="📄")
-                st.page_link("pages/13_Conciliação.py", label="Conciliação", icon="✓")
+                st.page_link("pages/13_Conciliação.py", label="Conciliação", icon="✅")
                 st.page_link("pages/14_Relatórios.py", label="Relatórios", icon="📈")
                 st.page_link("pages/16_Importar_fatura.py", label="Importar fatura", icon="📥")
