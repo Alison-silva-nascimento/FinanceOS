@@ -59,6 +59,40 @@ def criar_banco():
     )
 """)
 
+    cursor.execute("""
+
+    CREATE TABLE IF NOT EXISTS usuarios(
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT,
+        usuario TEXT UNIQUE,
+        senha TEXT
+
+    )
+
+    """)
+
+    total = cursor.execute("""
+        SELECT COUNT(*)
+        FROM usuarios
+        """).fetchone()[0]
+
+    if total == 0:
+
+            cursor.execute("""
+            INSERT INTO usuarios (
+                nome,
+                usuario,
+                senha
+            )
+            VALUES (?, ?, ?)
+            """, (
+                "Administrador",
+                "admin",
+                "Un1Su1@@lg"
+            ))   
+    
+
     conn.commit()
     conn.close()
 
