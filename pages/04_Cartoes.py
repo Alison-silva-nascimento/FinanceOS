@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_modal import Modal
+from components.theme import aplicar_tema
 from services.cartoes_service import (
     obter_cartoes,
     salvar_cartao,
@@ -8,6 +9,8 @@ from services.cartoes_service import (
     obter_cartao_por_id,
     calcular_kpis
 )
+from auth import exigir_login
+from database.db import adicionar_compra_cartao, fatura_cartao, listar_compras_cartao
 
 # =====================================================
 # MODAL EDITAR
@@ -34,6 +37,8 @@ st.set_page_config(
     page_icon="💳",
     layout="wide"
 )
+aplicar_tema()
+exigir_login()
 
 # =====================================================
 # CSS
@@ -654,5 +659,22 @@ R$ {cartao["limite"]:,.2f}
 
                  st.rerun()
 
+st.divider()
+st.subheader("🧾 Compras e faturas")
+if cartoes:
+    opcoes_cartao = {f"{c['nome']} · limite {c['limite']:,.2f}": c["id"] for c in cartoes}
+    with st.form("nova_compra_cartao", clear_on_submit=True):
+        cartao_escolhido = st.selectbox("Cartão", list(opcoes_cartao))
+        data_compra = st.date_input("Data da compra")
+        descricao_compra = st.text_input("Descrição da compra")
+        a,b,c = st.columns(3); categoria_compra=a.text_input("Categoria", value="Cartão"); valor_compra=b.number_input("Valor total", min_value=0.01, step=10.0); parcelas=c.number_input("Parcelas", min_value=1, max_value=48, value=1)
+        salvar_compra = st.form_submit_button("Adicionar compra", use_container_width=True)
+    if salvar_compra and descricao_compra.strip():
+        adicionar_compra_cartao(opcoes_cartao[cartao_escolhido], str(data_compra), descricao_compra.strip(), categoria_compra, valor_compra, parcelas); st.rerun()
+    for nome, id_cartao in opcoes_cartao.items():
+        compras = listar_compras_cartao(id_cartao)
+        if compras:
+            with st.expander(f"{nome} · fatura em aberto: R$ {fatura_cartao(id_cartao):,.2f}"):
+                for compra in compras: st.write(f"{compra['data']} · {compra['descricao']} — R$ {compra['valor']/compra['parcelas']:,.2f} ({compra['parcelas']}x)")
 
-            
+

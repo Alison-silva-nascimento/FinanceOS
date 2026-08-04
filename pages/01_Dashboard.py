@@ -7,10 +7,13 @@ from datetime import datetime
 from database.db import (
     listar_receitas,
     listar_despesas,
+    proximos_vencimentos,
 )
 
 from components.cards import kpi_card
 from components.formatadores import moeda
+from components.theme import aplicar_tema
+from auth import exigir_login
 
 # ======================================================
 # CONFIGURAÇÃO
@@ -21,6 +24,8 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+aplicar_tema()
+exigir_login()
 
 # ======================================================
 # CSS
@@ -93,6 +98,11 @@ st.markdown("""
 receitas = listar_receitas()
 despesas = listar_despesas()
 
+mes_atual = datetime.now().strftime("%Y-%m")
+mes_referencia = st.sidebar.text_input("📅 Mês do painel", value=mes_atual, help="Formato AAAA-MM")
+receitas = [r for r in receitas if str(r["data"]).startswith(mes_referencia)]
+despesas = [d for d in despesas if str(d["data"]).startswith(mes_referencia)]
+
 total_receitas = sum(r["valor"] for r in receitas)
 
 total_despesas = sum(d["valor"] for d in despesas)
@@ -128,6 +138,8 @@ st.markdown(f"""
 # {saudacao}
 
 ### Bem-vindo ao **FinanceOS**
+
+Painel de **{mes_referencia}**
 
 """)
 
@@ -566,15 +578,12 @@ with c1:
 
     st.subheader("📅 Próximos vencimentos")
 
-    despesas_sort=sorted(
+    vencimentos = proximos_vencimentos()
 
-        despesas,
+    if not vencimentos:
+        st.info("Cadastre contas em Recorrências para receber alertas de vencimento.")
 
-        key=lambda x:x["data"]
-
-    )
-
-    for d in despesas_sort[:5]:
+    for d in vencimentos:
 
         with st.container(border=True):
 
@@ -590,11 +599,7 @@ with c1:
 
                 st.caption(
 
-                    pd.to_datetime(
-
-                        d["data"]
-
-                    ).strftime("%d/%m/%Y")
+                    f"{d['data'].strftime('%d/%m/%Y')} · {d['categoria']}"
 
                 )
 

@@ -1,49 +1,37 @@
 import streamlit as st
 from datetime import datetime
+
+from config import LAYOUT, PAGE_ICON, PAGE_TITLE, SIDEBAR_STATE
+from components.theme import aplicar_tema
+from database.db import criar_banco
 from login import tela_login
+
 
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
-if not st.session_state.logado:
-
-    tela_login()
-
-    st.stop()
-
-if not st.session_state.get("logado", False):
-
-    st.markdown("""
-    <style>
-
-    section[data-testid="stSidebar"]{
-        display:none;
-    }
-
-    header[data-testid="stHeader"]{
-        display:none;
-    }
-
-    </style>
-    """, unsafe_allow_html=True)
-
-    tela_login()
-    st.stop()
-    
-# ==========================================================
-# CONFIGURAÇÃO
-# ==========================================================
-
 st.set_page_config(
-    page_title="FinanceOS",
-    page_icon="💰",
-    layout="wide"
+    page_title=PAGE_TITLE,
+    page_icon=PAGE_ICON,
+    layout=LAYOUT,
+    initial_sidebar_state=SIDEBAR_STATE if st.session_state.logado else "collapsed",
 )
+criar_banco()
+aplicar_tema()
+
+if not st.session_state.logado:
+    tela_login()
+    st.stop()
+
+with st.sidebar:
+    st.caption(f"Conectado como {st.session_state.get('usuario', '')}")
+    if st.button("Sair", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
 
 # ==========================================================
 # SAUDAÇÃO
 # ==========================================================
-
 hora = datetime.now().hour
 
 if hora < 12:
@@ -847,5 +835,3 @@ Desenvolvido por <b>Alison S. Nascimento</b>
 """,
     unsafe_allow_html=True
 )
-
-
