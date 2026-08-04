@@ -1,6 +1,16 @@
 import streamlit as st
 from datetime import datetime
+from login import tela_login
 
+if "logado" not in st.session_state:
+    st.session_state.logado = False
+
+if not st.session_state.logado:
+
+    tela_login()
+
+    st.stop()
+    
 # ==========================================================
 # CONFIGURAÇÃO
 # ==========================================================
