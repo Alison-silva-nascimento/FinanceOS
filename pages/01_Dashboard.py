@@ -119,19 +119,16 @@ if total_receitas>0:
 # SAUDAÇÃO
 # ======================================================
 
-hora=datetime.now().hour
+hora = datetime.now().hour
 
-if hora<12:
+if 7 <= hora <= 11:
+    saudacao = "☀️ Bom dia"
 
-    saudacao="Bom dia ☀️"
-
-elif hora<18:
-
-    saudacao="Boa tarde 🌤"
+elif 12 <= hora <= 18:
+    saudacao = "🌤️ Boa tarde"
 
 else:
-
-    saudacao="Boa noite 🌙"
+    saudacao = "🌙 Boa noite"
 
 st.markdown(f"""
 
