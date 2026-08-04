@@ -8,6 +8,11 @@ from database.db import (
     listar_receitas,
     listar_despesas,
     proximos_vencimentos,
+    listar_bancos,
+    listar_metas,
+    listar_patrimonio,
+    projecao_mes,
+    gastos_cartao_categoria,
 )
 
 from components.cards import kpi_card
@@ -35,57 +40,22 @@ st.markdown("""
 
 <style>
 
-.block-container{
-    padding-top:2rem;
-}
-
-.card-hover{
-    transition:.25s;
-}
-
-.card-hover:hover{
-
-    transform:translateY(-4px);
-
-    filter:brightness(1.06);
-
-}
-
-.saldo-card{
-
-    background:linear-gradient(135deg,#2563EB,#1D4ED8);
-
-    border-radius:18px;
-
-    padding:30px;
-
-    color:white;
-
-    box-shadow:0 8px 20px rgba(0,0,0,.25);
-
-}
-
-.small-title{
-
-    font-size:14px;
-
-    opacity:.75;
-
-}
-
-.big-money{
-
-    font-size:42px;
-
-    font-weight:700;
-
-}
-
-.subtitle{
-
-    opacity:.8;
-
-}
+.dashboard-hero { position:relative; overflow:hidden; margin:0 0 1.25rem; padding:2rem 2.15rem; border:1px solid rgba(96,165,250,.35); border-radius:22px; background:linear-gradient(120deg,rgba(29,78,216,.52),rgba(67,56,202,.38) 56%,rgba(109,40,217,.32)); box-shadow:0 18px 42px rgba(0,0,0,.2); }
+.dashboard-hero::after { content:""; position:absolute; width:15rem; height:15rem; right:-5rem; top:-8rem; border-radius:50%; background:rgba(191,219,254,.13); box-shadow:-4rem 8rem 0 rgba(167,139,250,.09); }
+.dashboard-hero__eyebrow { position:relative; margin-bottom:.55rem; color:#bfdbfe; font-size:.82rem; font-weight:750; letter-spacing:.09em; text-transform:uppercase; }
+.dashboard-hero h1 { position:relative; margin:0 !important; font-size:2.35rem !important; }
+.dashboard-hero p { position:relative; margin:.55rem 0 0; color:#dbeafe; font-size:1rem; }
+.saldo-card { position:relative; overflow:hidden; display:flex; align-items:flex-end; justify-content:space-between; gap:1.5rem; margin-bottom:.4rem; padding:2rem 2.15rem; border:1px solid rgba(96,165,250,.42); border-radius:20px; background:linear-gradient(115deg,#1d4ed8 0%,#2563eb 48%,#4338ca 100%); color:white; box-shadow:0 18px 40px rgba(30,64,175,.28); }
+.saldo-card::after { content:""; position:absolute; width:14rem; height:14rem; right:-4rem; bottom:-8rem; border:1px solid rgba(255,255,255,.16); border-radius:50%; box-shadow:0 0 0 2.7rem rgba(255,255,255,.05),0 0 0 5.4rem rgba(255,255,255,.035); }
+.saldo-card__content,.saldo-card__summary { position:relative; z-index:1; }
+.saldo-card__summary { display:flex; gap:1.4rem; padding:.85rem 1rem; border:1px solid rgba(255,255,255,.16); border-radius:13px; background:rgba(15,23,42,.18); }
+.saldo-card__summary span { display:block; color:rgba(255,255,255,.72); font-size:.76rem; font-weight:650; }
+.saldo-card__summary strong { display:block; margin-top:.2rem; font-size:1rem; }
+.small-title { font-size:.84rem; font-weight:700; letter-spacing:.025em; opacity:.82; }
+.big-money { margin-top:.35rem; font-size:clamp(2.2rem,4vw,3.2rem); font-weight:800; letter-spacing:-.055em; }
+.dashboard-section { display:flex; align-items:center; gap:.65rem; margin-top:1.9rem; margin-bottom:.8rem; }
+.dashboard-section h2 { margin:0 !important; font-size:1.32rem !important; }
+@media (max-width: 700px) { .dashboard-hero { padding:1.45rem; border-radius:17px; } .dashboard-hero h1 { font-size:1.9rem !important; } .saldo-card { display:block; padding:1.45rem; border-radius:17px; } .saldo-card__summary { margin-top:1.25rem; gap:.85rem; } .saldo-card__summary strong { font-size:.9rem; } }
 
 </style>
 
@@ -102,6 +72,11 @@ mes_atual = datetime.now().strftime("%Y-%m")
 mes_referencia = st.sidebar.text_input("📅 Mês do painel", value=mes_atual, help="Formato AAAA-MM")
 receitas = [r for r in receitas if str(r["data"]).startswith(mes_referencia)]
 despesas = [d for d in despesas if str(d["data"]).startswith(mes_referencia)]
+bancos = listar_bancos()
+metas = listar_metas()
+patrimonio = listar_patrimonio()
+projecao = projecao_mes(mes_referencia)
+gastos_cartao = gastos_cartao_categoria(mes_referencia)
 
 total_receitas = sum(r["valor"] for r in receitas)
 
@@ -131,14 +106,12 @@ else:
     saudacao = "🌙 Boa noite"
 
 st.markdown(f"""
-
-# {saudacao}
-
-### Bem-vindo ao **FinanceOS**
-
-Painel de **{mes_referencia}**
-
-""")
+<section class="dashboard-hero">
+  <div class="dashboard-hero__eyebrow">Visão financeira pessoal</div>
+  <h1>{saudacao}</h1>
+  <p>Seu painel de <strong>{mes_referencia}</strong> em um só lugar.</p>
+</section>
+""", unsafe_allow_html=True)
 
 # ======================================================
 # CARD PRINCIPAL
@@ -148,30 +121,16 @@ st.markdown(
 
 f"""
 
-<div class="saldo-card">
-
-<div class="small-title">
-
-Saldo Atual
-
-</div>
-
-<div class="big-money">
-
-{moeda(saldo)}
-
-</div>
-
-<div class="subtitle">
-
-Receitas: {moeda(total_receitas)}
-&nbsp;&nbsp;&nbsp;&nbsp;
-
-Despesas: {moeda(total_despesas)}
-
-</div>
-
-</div>
+<section class="saldo-card">
+  <div class="saldo-card__content">
+    <div class="small-title">Saldo do mês</div>
+    <div class="big-money">{moeda(saldo)}</div>
+  </div>
+  <div class="saldo-card__summary">
+    <div><span>Receitas</span><strong>{moeda(total_receitas)}</strong></div>
+    <div><span>Despesas</span><strong>{moeda(total_despesas)}</strong></div>
+  </div>
+</section>
 
 """,
 
@@ -242,6 +201,21 @@ with c4:
         "#7C3AED"
 
     )
+
+st.divider()
+
+if gastos_cartao:
+    st.subheader("💳 Fatura em aberto por categoria")
+    df_cartao = pd.DataFrame([dict(item) for item in gastos_cartao])
+    st.plotly_chart(px.bar(df_cartao, x="categoria", y="valor", color="categoria", text_auto=".2s"), use_container_width=True)
+    st.caption("Revise as categorias em Controle de gastos do cartão para tornar esta visão mais precisa.")
+    st.divider()
+
+st.subheader("🔮 Projeção até o fim do mês")
+p1,p2,p3=st.columns(3)
+p1.metric("Receitas previstas", moeda(projecao["previstas_receita"]))
+p2.metric("Despesas previstas", moeda(projecao["previstas_despesa"]))
+p3.metric("Saldo projetado", moeda(projecao["saldo_projetado"]))
 
 st.divider()
 
@@ -625,22 +599,15 @@ unsafe_allow_html=True
 with c2:
 
     st.subheader("🎯 Metas")
-
-    with st.container(border=True):
-
-        st.markdown(
-
-            "### 🚧 Em desenvolvimento"
-
-        )
-
-        st.progress(0)
-
-        st.caption(
-
-            "Em breve você poderá cadastrar metas."
-
-        )
+    if not metas:
+        st.info("Nenhuma meta cadastrada. Acesse Metas para criar a primeira.")
+    else:
+        for meta in metas[:3]:
+            progresso = min(meta["valor_atual"] / meta["valor_alvo"], 1) if meta["valor_alvo"] else 0
+            with st.container(border=True):
+                st.markdown(f"**{meta['nome']}** · {progresso:.0%}")
+                st.progress(progresso)
+                st.caption(f"{moeda(meta['valor_atual'])} de {moeda(meta['valor_alvo'])}")
 
 st.divider()
 
@@ -653,26 +620,23 @@ c1,c2=st.columns(2)
 with c1:
 
     st.subheader("🏦 Bancos")
-
-    with st.container(border=True):
-
-        st.info(
-
-            "Nenhuma conta cadastrada."
-
-        )
+    if not bancos:
+        st.info("Nenhuma conta cadastrada.")
+    else:
+        st.metric("Saldo em contas", moeda(sum(banco["saldo"] for banco in bancos)))
+        for banco in bancos[:4]:
+            st.caption(f"{banco['nome']} · {moeda(banco['saldo'])}")
 
 with c2:
 
     st.subheader("🏠 Patrimônio")
-
-    with st.container(border=True):
-
-        st.info(
-
-            "Nenhum patrimônio cadastrado."
-
-        )
+    if not patrimonio:
+        st.info("Nenhum item cadastrado.")
+    else:
+        ativos = sum(item["valor"] for item in patrimonio if item["tipo"] == "Ativo")
+        passivos = sum(item["valor"] for item in patrimonio if item["tipo"] == "Passivo")
+        st.metric("Patrimônio líquido", moeda(ativos - passivos))
+        st.caption(f"Ativos: {moeda(ativos)} · Dívidas: {moeda(passivos)}")
 
 st.divider()
 

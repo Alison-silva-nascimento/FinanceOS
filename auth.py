@@ -3,11 +3,15 @@
 import hashlib
 import hmac
 import secrets
+from datetime import datetime, timedelta
+from io import BytesIO
 
-from database.db import conectar
+from database.db import conectar, registrar_evento
 
 
 ITERACOES_PBKDF2 = 600_000
+MAX_FOTO_BYTES = 2 * 1024 * 1024
+MAX_PIXELS_FOTO = 16_000_000
 
 
 def _gerar_hash(senha, sal=None):
@@ -49,7 +53,7 @@ def criar_usuario(nome, usuario, senha):
     conn = conectar()
     try:
         conn.execute(
-            "INSERT INTO usuarios (nome, usuario, senha_hash) VALUES (?, ?, ?)",
+            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, 'usuario')",
             (nome.strip(), usuario.strip(), _gerar_hash(senha)),
         )
         conn.commit()
@@ -65,10 +69,46 @@ def criar_usuario(nome, usuario, senha):
 def autenticar(usuario, senha):
     conn = conectar()
     registro = conn.execute(
-        "SELECT usuario, senha_hash FROM usuarios WHERE usuario = ?", (usuario.strip(),)
+        "SELECT id, usuario, senha_hash, perfil, bloqueado_ate FROM usuarios WHERE usuario = ?", (usuario.strip(),)
     ).fetchone()
     conn.close()
-    return registro is not None and _verificar_senha(senha, registro["senha_hash"])
+    if registro is not None and _verificar_senha(senha, registro["senha_hash"]):
+        conn = conectar()
+        conn.execute("UPDATE usuarios SET tentativas_login=0, bloqueado_ate=NULL, ultimo_login=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), registro["id"]))
+        conn.commit(); conn.close()
+        registrar_evento(registro["id"], "Login realizado")
+        return dict(registro)
+    return None
+
+
+def login_bloqueado(usuario):
+    conn = conectar()
+    registro = conn.execute("SELECT bloqueado_ate FROM usuarios WHERE usuario=?", (usuario.strip(),)).fetchone()
+    conn.close()
+    if not registro or not registro["bloqueado_ate"]:
+        return False
+    try:
+        return datetime.fromisoformat(registro["bloqueado_ate"]) > datetime.now()
+    except ValueError:
+        return False
+
+
+def registrar_falha_login(usuario):
+    """Conta falhas no banco para que o bloqueio sobreviva ao navegador."""
+    conn = conectar()
+    registro = conn.execute("SELECT id, tentativas_login FROM usuarios WHERE usuario=?", (usuario.strip(),)).fetchone()
+    if not registro:
+        conn.close(); return False
+    tentativas = int(registro["tentativas_login"] or 0) + 1
+    bloqueado_ate = None
+    bloqueado = tentativas >= 5
+    if bloqueado:
+        bloqueado_ate = (datetime.now() + timedelta(minutes=10)).isoformat(timespec="seconds")
+        tentativas = 0
+    conn.execute("UPDATE usuarios SET tentativas_login=?, bloqueado_ate=? WHERE id=?", (tentativas, bloqueado_ate, registro["id"]))
+    conn.commit(); conn.close()
+    registrar_evento(registro["id"], "Tentativa de login inválida" if not bloqueado else "Conta bloqueada por tentativas inválidas")
+    return bloqueado
 
 
 def alterar_senha(usuario, senha_atual, nova_senha):
@@ -79,7 +119,74 @@ def alterar_senha(usuario, senha_atual, nova_senha):
     conn = conectar()
     conn.execute("UPDATE usuarios SET senha_hash=? WHERE usuario=?", (_gerar_hash(nova_senha), usuario))
     conn.commit(); conn.close()
+    perfil = obter_perfil(usuario)
+    if perfil:
+        registrar_evento(perfil["id"], "Senha alterada")
     return True, "Senha atualizada com sucesso."
+
+
+def obter_perfil(usuario):
+    conn = conectar()
+    perfil = conn.execute(
+        "SELECT id, nome, usuario, perfil, foto_perfil, ultimo_login FROM usuarios WHERE usuario=?",
+        (usuario,),
+    ).fetchone()
+    conn.close()
+    return perfil
+
+
+def salvar_foto_perfil(usuario, foto):
+    if len(foto) > MAX_FOTO_BYTES:
+        return False, "A foto deve ter no máximo 2 MB."
+    try:
+        from PIL import Image
+        imagem = Image.open(BytesIO(foto))
+        imagem.verify()
+        imagem = Image.open(BytesIO(foto))
+        imagem.load()
+        if imagem.width * imagem.height > MAX_PIXELS_FOTO:
+            return False, "A imagem possui resolução muito alta."
+        imagem.thumbnail((512, 512))
+        saida = BytesIO(); imagem.convert("RGB").save(saida, format="JPEG", quality=88, optimize=True)
+        foto = saida.getvalue()
+    except Exception:
+        return False, "Envie uma imagem válida em PNG, JPG ou WEBP."
+    conn = conectar()
+    conn.execute("UPDATE usuarios SET foto_perfil=? WHERE usuario=?", (foto, usuario))
+    conn.commit()
+    conn.close()
+    perfil = obter_perfil(usuario)
+    if perfil:
+        registrar_evento(perfil["id"], "Foto de perfil atualizada")
+    return True, "Foto atualizada."
+
+
+def renderizar_menu_usuario():
+    """Exibe o acesso ao perfil no topo da barra lateral."""
+    import streamlit as st
+
+    usuario = st.session_state.get("usuario")
+    dados = obter_perfil(usuario) if usuario else None
+    with st.sidebar:
+        with st.popover("👤 Perfil", use_container_width=True):
+                if dados and dados["foto_perfil"]:
+                    st.image(dados["foto_perfil"], width=96)
+                else:
+                    st.markdown("## 👤")
+                st.markdown(f"**{dados['nome'] if dados else usuario}**")
+                st.caption(f"@{usuario}")
+                if dados and dados["perfil"] == "admin":
+                    st.caption("Administrador")
+                foto = st.file_uploader("Adicionar ou trocar foto", type=["png", "jpg", "jpeg", "webp"], key="foto_perfil")
+                if foto and st.button("Salvar foto", use_container_width=True, key="salvar_foto_perfil"):
+                    sucesso, mensagem = salvar_foto_perfil(usuario, foto.getvalue())
+                    (st.success if sucesso else st.error)(mensagem)
+                    if sucesso:
+                        st.rerun()
+                st.divider()
+                if st.button("Sair da conta", use_container_width=True, key="sair_perfil"):
+                    st.session_state.clear()
+                    st.rerun()
 
 
 def exigir_login():

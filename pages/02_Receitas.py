@@ -298,7 +298,7 @@ if pesquisa:
 
         r for r in receitas
 
-        if pesquisa in r["descricao"].lower()
+        if pesquisa in (r["descricao"] or "").lower()
 
         or pesquisa in r["categoria"].lower()
 
@@ -310,17 +310,18 @@ st.subheader("📊 Análises")
 
 df_grafico = pd.DataFrame([dict(r) for r in receitas])
 
-df_grafico["Data"] = pd.to_datetime(df_grafico["data"])
-df_grafico["Valor"] = df_grafico["valor"]
-df_grafico["Categoria"] = df_grafico["categoria"]
+if not df_grafico.empty:
+    df_grafico["Data"] = pd.to_datetime(df_grafico["data"])
+    df_grafico["Valor"] = df_grafico["valor"]
+    df_grafico["Categoria"] = df_grafico["categoria"]
 
-col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-with col1:
-    grafico_receitas_categoria(df_grafico)
+    with col1:
+        grafico_receitas_categoria(df_grafico)
 
-with col2:
-    grafico_receitas_mes(df_grafico)
+    with col2:
+        grafico_receitas_mes(df_grafico)
 
 # ==========================================
 # FILTRO
@@ -346,6 +347,8 @@ if categoria_filtro != "Todas":
         if r["categoria"] == categoria_filtro
 
     ]
+
+df = pd.DataFrame()
 
 if not receitas:
 
