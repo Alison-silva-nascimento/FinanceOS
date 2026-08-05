@@ -111,7 +111,7 @@ st.markdown("""
 .block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
 .home-hero { padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
 .home-hero__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.home-avatar { width: 54px; height: 54px; flex: 0 0 54px; border: 2px solid rgba(255,255,255,.62); border-radius: 50%; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+.home-avatar { width: 84px; height: 84px; flex: 0 0 84px; border: 2px solid rgba(255,255,255,.62); border-radius: 50%; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
 .home-avatar--fallback { display: inline-flex; align-items: center; justify-content: center; background: rgba(15,23,42,.36); font-size: 1.5rem; }
 .home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
 .home-eyebrow { display: none; }
