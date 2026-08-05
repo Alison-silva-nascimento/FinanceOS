@@ -1,8 +1,11 @@
 import calendar
+from base64 import b64encode
 from datetime import date, datetime
+from html import escape
 
 import streamlit as st
 
+from auth import obter_perfil
 from config import APP_NAME, APP_VERSION, AUTHOR, LAYOUT, PAGE_ICON, PAGE_TITLE, SIDEBAR_STATE
 from components.formatadores import moeda
 from components.theme import aplicar_tema
@@ -75,11 +78,41 @@ for meta in metas:
 
 hora = datetime.now().hour
 saudacao = "☀️ Bom dia" if 7 <= hora <= 11 else "🌤️ Boa tarde" if 12 <= hora <= 18 else "🌙 Boa noite"
+try:
+    perfil_usuario = obter_perfil(st.session_state.get("usuario"))
+    primeiro_nome = (perfil_usuario["nome"] or "").strip().split()[0]
+except Exception:
+    perfil_usuario = None
+    primeiro_nome = ""
+saudacao_personalizada = f"{saudacao}, {escape(primeiro_nome)}" if primeiro_nome else saudacao
+
+
+def avatar_hero(foto):
+    """Retorna um avatar seguro para o card inicial, a partir da foto armazenada."""
+    if not foto:
+        return "<span class='home-avatar home-avatar--fallback' aria-hidden='true'>👤</span>"
+    conteudo = bytes(foto)
+    if conteudo.startswith(b"\x89PNG"):
+        mime = "image/png"
+    elif conteudo.startswith(b"\xff\xd8\xff"):
+        mime = "image/jpeg"
+    elif conteudo.startswith(b"RIFF") and conteudo[8:12] == b"WEBP":
+        mime = "image/webp"
+    else:
+        return "<span class='home-avatar home-avatar--fallback' aria-hidden='true'>👤</span>"
+    imagem = b64encode(conteudo).decode("ascii")
+    return f"<img class='home-avatar' src='data:{mime};base64,{imagem}' alt='Foto de perfil'>"
+
+
+avatar_usuario = avatar_hero(perfil_usuario["foto_perfil"] if perfil_usuario else None)
 
 st.markdown("""
 <style>
 .block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
 .home-hero { padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
+.home-hero__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.home-avatar { width: 54px; height: 54px; flex: 0 0 54px; border: 2px solid rgba(255,255,255,.62); border-radius: 50%; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+.home-avatar--fallback { display: inline-flex; align-items: center; justify-content: center; background: rgba(15,23,42,.36); font-size: 1.5rem; }
 .home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
 .home-eyebrow { display: none; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
@@ -89,6 +122,7 @@ st.markdown("""
   .home-eyebrow { display: block; margin-bottom: .7rem; color: #bfdbfe; font-size: .67rem; font-weight: 780; letter-spacing: .12em; }
   .home-hero h2 { margin: 0 !important; font-size: clamp(1.55rem, 7.5vw, 2rem) !important; }
   .home-hero p { max-width: 28ch; margin-top: .6rem; font-size: .93rem; line-height: 1.5; }
+  .home-avatar { width: 46px; height: 46px; flex-basis: 46px; }
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetric"],
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stMetric"] { min-height: 128px; padding: 1.15rem; border-color: rgba(96,165,250,.46); background: radial-gradient(circle at 100% 100%, rgba(96,165,250,.28), transparent 42%), linear-gradient(125deg, rgba(30,64,175,.72), rgba(67,56,202,.68)); }
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetricValue"],
@@ -98,7 +132,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(f"<div class='home-hero'><span class='home-eyebrow'>VISÃO FINANCEIRA PESSOAL</span><h2>{saudacao}</h2><p>Veja o que merece sua atenção e registre a próxima movimentação.</p></div>", unsafe_allow_html=True)
+st.markdown(f"<div class='home-hero'><div class='home-hero__top'><div><span class='home-eyebrow'>VISÃO FINANCEIRA PESSOAL</span><h2>{saudacao_personalizada}</h2></div>{avatar_usuario}</div><p>Veja o que merece sua atenção e registre a próxima movimentação.</p></div>", unsafe_allow_html=True)
 
 with st.container(key="home-kpis"):
     c1, c2, c3 = st.columns(3)
