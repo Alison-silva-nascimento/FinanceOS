@@ -164,6 +164,7 @@ def tela_login():
                         st.session_state.usuario = usuario.strip()
                         st.session_state.usuario_id = perfil["id"]
                         st.session_state.perfil = perfil["perfil"]
+                        st.session_state.sessao_versao = perfil.get("sessao_versao", 1)
                         st.rerun()
                     st.error(mensagem) if not sucesso else None
             st.markdown(
@@ -187,6 +188,7 @@ def tela_login():
                     st.session_state.usuario = usuario.strip()
                     st.session_state.usuario_id = perfil["id"]
                     st.session_state.perfil = perfil["perfil"]
+                    st.session_state.sessao_versao = perfil.get("sessao_versao", 1)
                     st.rerun()
                 else:
                     if registrar_falha_login(usuario):
@@ -213,6 +215,7 @@ def tela_login():
                         st.session_state.usuario = usuario_novo.strip()
                         st.session_state.usuario_id = perfil["id"]
                         st.session_state.perfil = perfil["perfil"]
+                        st.session_state.sessao_versao = perfil.get("sessao_versao", 1)
                         st.rerun()
                     st.error(mensagem) if not sucesso else None
 

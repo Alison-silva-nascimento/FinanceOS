@@ -13,6 +13,7 @@ from database.db import conectar, registrar_evento
 ITERACOES_PBKDF2 = 600_000
 MAX_FOTO_BYTES = 2 * 1024 * 1024
 MAX_PIXELS_FOTO = 16_000_000
+USUARIO_ADMIN = "alison.nascimento"
 
 
 def _validar_usuario(usuario):
@@ -94,7 +95,7 @@ def criar_usuario(nome, usuario, senha):
 def autenticar(usuario, senha):
     conn = conectar()
     registro = conn.execute(
-        "SELECT id, usuario, senha_hash, perfil, bloqueado_ate FROM usuarios WHERE usuario = ?", (usuario.strip(),)
+        "SELECT id, usuario, senha_hash, perfil, bloqueado_ate, sessao_versao FROM usuarios WHERE usuario = ?", (usuario.strip(),)
     ).fetchone()
     conn.close()
     if registro is not None and _verificar_senha(senha, registro["senha_hash"]):
@@ -151,10 +152,56 @@ def alterar_senha(usuario, senha_atual, nova_senha):
     return True, "Senha atualizada com sucesso."
 
 
+def eh_admin():
+    """Apenas a conta proprietária pode acessar operações administrativas."""
+    try:
+        import streamlit as st
+        return str(st.session_state.get("usuario", "")).strip().lower() == USUARIO_ADMIN
+    except Exception:
+        return False
+
+
+def exigir_admin():
+    """Interrompe a página quando a conta não é a administradora do FinanceOS."""
+    import streamlit as st
+
+    exigir_login()
+    if not eh_admin():
+        st.error("Esta área é restrita ao administrador.")
+        st.stop()
+
+
+def resetar_senha_admin(usuario_destino, nova_senha):
+    """Redefine senha de outra conta, com validação e trilha de auditoria."""
+    if not eh_admin():
+        return False, "Ação administrativa não autorizada."
+    if usuario_destino.strip().lower() == USUARIO_ADMIN:
+        return False, "Use 'Alterar senha' no seu perfil para atualizar a senha do administrador."
+    valida, mensagem = _validar_senha(nova_senha)
+    if not valida:
+        return False, mensagem
+    conn = conectar()
+    destino = conn.execute("SELECT id FROM usuarios WHERE usuario=?", (usuario_destino.strip(),)).fetchone()
+    if not destino:
+        conn.close()
+        return False, "Usuário não encontrado."
+    conn.execute(
+        "UPDATE usuarios SET senha_hash=?, tentativas_login=0, bloqueado_ate=NULL, sessao_versao=COALESCE(sessao_versao, 1)+1 WHERE id=?",
+        (_gerar_hash(nova_senha), destino["id"]),
+    )
+    conn.commit()
+    conn.close()
+    registrar_evento(destino["id"], "Senha redefinida pelo administrador", "Redefinição realizada por alison.nascimento")
+    administrador = obter_perfil(USUARIO_ADMIN)
+    if administrador:
+        registrar_evento(administrador["id"], "Senha de usuário redefinida", f"Conta afetada: @{usuario_destino.strip()}")
+    return True, "Senha redefinida. Oriente o usuário a entrar com a nova senha."
+
+
 def obter_perfil(usuario):
     conn = conectar()
     perfil = conn.execute(
-        "SELECT id, nome, usuario, perfil, foto_perfil, ultimo_login FROM usuarios WHERE usuario=?",
+        "SELECT id, nome, usuario, perfil, foto_perfil, ultimo_login, sessao_versao FROM usuarios WHERE usuario=?",
         (usuario,),
     ).fetchone()
     conn.close()
@@ -219,5 +266,26 @@ def exigir_login():
     """Redireciona páginas internas para a tela de login quando necessário."""
     import streamlit as st
 
-    if not st.session_state.get("logado", False):
+    if not st.session_state.get("logado", False) or not validar_sessao_atual():
+        st.session_state.clear()
         st.switch_page("app.py")
+
+
+def validar_sessao_atual():
+    """Invalida sessões antigas após uma redefinição administrativa de senha."""
+    try:
+        import streamlit as st
+
+        if not st.session_state.get("logado"):
+            return False
+        perfil = obter_perfil(st.session_state.get("usuario"))
+        if not perfil:
+            return False
+        versao_atual = perfil["sessao_versao"] or 1
+        versao_sessao = st.session_state.get("sessao_versao")
+        if versao_sessao is None:
+            st.session_state.sessao_versao = versao_atual
+            return True
+        return int(versao_sessao) == int(versao_atual)
+    except Exception:
+        return False
