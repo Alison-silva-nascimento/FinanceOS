@@ -116,6 +116,7 @@ st.markdown("""
 .home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
 .home-eyebrow { display: none; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
+@media (min-width: 701px) { .home-avatar { margin-right: clamp(2rem, 10vw, 8rem); } }
 @media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
 @media (max-width: 700px) {
   .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background: radial-gradient(circle at 95% 0%, rgba(139,92,246,.3), transparent 42%), linear-gradient(120deg, rgba(30,64,175,.6), rgba(88,28,135,.46)); }
