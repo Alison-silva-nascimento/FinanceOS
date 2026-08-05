@@ -81,13 +81,24 @@ st.markdown("""
 .block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
 .home-hero { padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
 .home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
+.home-eyebrow { display: none; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
 @media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
-@media (max-width: 700px) { .home-hero { border-radius: 16px; margin-top: 0; } .home-hero h2 { font-size: 1.7rem !important; } }
+@media (max-width: 700px) {
+  .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background: radial-gradient(circle at 95% 0%, rgba(139,92,246,.3), transparent 42%), linear-gradient(120deg, rgba(30,64,175,.6), rgba(88,28,135,.46)); }
+  .home-eyebrow { display: block; margin-bottom: .7rem; color: #bfdbfe; font-size: .67rem; font-weight: 780; letter-spacing: .12em; }
+  .home-hero h2 { margin: 0 !important; font-size: clamp(1.55rem, 7.5vw, 2rem) !important; }
+  .home-hero p { max-width: 28ch; margin-top: .6rem; font-size: .93rem; line-height: 1.5; }
+  .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetric"],
+  .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stMetric"] { min-height: 128px; padding: 1.15rem; border-color: rgba(96,165,250,.46); background: radial-gradient(circle at 100% 100%, rgba(96,165,250,.28), transparent 42%), linear-gradient(125deg, rgba(30,64,175,.72), rgba(67,56,202,.68)); }
+  .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetricValue"],
+  .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stMetricValue"] { font-size: clamp(1.85rem, 9vw, 2.35rem) !important; }
+  .st-key-home-kpis [data-testid="stMetric"] { min-height: 98px; }
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(f"<div class='home-hero'><h2>{saudacao}</h2><p>Veja o que merece sua atenção e registre a próxima movimentação.</p></div>", unsafe_allow_html=True)
+st.markdown(f"<div class='home-hero'><span class='home-eyebrow'>VISÃO FINANCEIRA PESSOAL</span><h2>{saudacao}</h2><p>Veja o que merece sua atenção e registre a próxima movimentação.</p></div>", unsafe_allow_html=True)
 
 with st.container(key="home-kpis"):
     c1, c2, c3 = st.columns(3)
