@@ -168,6 +168,11 @@ def aplicar_tema():
         """,
         unsafe_allow_html=True,
     )
+    if str(st.session_state.get("usuario", "")).strip().lower() != "alison.nascimento":
+        st.markdown(
+            "<style>[data-testid='stSidebarNav'] li:has(a[href*='Admin']) { display:none !important; }</style>",
+            unsafe_allow_html=True,
+        )
     _renderizar_cabecalho_usuario()
     _renderizar_navegacao_mobile()
     _renderizar_barra_inferior_mobile()
@@ -199,6 +204,8 @@ def _renderizar_navegacao_mobile():
                 st.page_link("pages/12_Holerite.py", label="Holerite")
                 st.page_link("pages/13_Conciliação.py", label="Conciliação")
                 st.page_link("pages/14_Relatórios.py", label="Relatórios")
+                if str(st.session_state.get("usuario", "")).strip().lower() == "alison.nascimento":
+                    st.page_link("pages/15_Admin.py", label="Admin")
 
 
 def _renderizar_barra_inferior_mobile():

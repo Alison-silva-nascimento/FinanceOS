@@ -84,6 +84,53 @@ def listar_eventos_seguranca(limite=20):
     conn.close(); return dados
 
 
+def _exigir_admin():
+    """Protege consultas administrativas inclusive quando uma URL é aberta diretamente."""
+    try:
+        import streamlit as st
+        usuario = str(st.session_state.get("usuario", "")).strip().lower()
+    except Exception:
+        usuario = ""
+    if usuario != "alison.nascimento":
+        raise PermissionError("Acesso administrativo não autorizado.")
+
+
+def listar_usuarios_admin():
+    """Resumo de contas, sem expor hashes, fotos ou dados financeiros."""
+    _exigir_admin()
+    conn = conectar()
+    dados = conn.execute("""
+        SELECT u.id, u.nome, u.usuario, u.perfil, u.criado_em, u.ultimo_login,
+               u.bloqueado_ate, COUNT(e.id) AS eventos_registrados
+        FROM usuarios u
+        LEFT JOIN eventos_seguranca e ON e.usuario_id = u.id
+        GROUP BY u.id
+        ORDER BY u.criado_em DESC, u.id DESC
+    """).fetchall()
+    conn.close()
+    return dados
+
+
+def listar_eventos_admin(usuario_id=None, limite=200):
+    """Histórico administrativo de atividades, opcionalmente filtrado por usuário."""
+    _exigir_admin()
+    conn = conectar()
+    if usuario_id:
+        dados = conn.execute("""
+            SELECT e.id, u.nome, u.usuario, e.acao, e.detalhes, e.criado_em
+            FROM eventos_seguranca e JOIN usuarios u ON u.id=e.usuario_id
+            WHERE e.usuario_id=? ORDER BY e.criado_em DESC, e.id DESC LIMIT ?
+        """, (usuario_id, limite)).fetchall()
+    else:
+        dados = conn.execute("""
+            SELECT e.id, u.nome, u.usuario, e.acao, e.detalhes, e.criado_em
+            FROM eventos_seguranca e JOIN usuarios u ON u.id=e.usuario_id
+            ORDER BY e.criado_em DESC, e.id DESC LIMIT ?
+        """, (limite,)).fetchall()
+    conn.close()
+    return dados
+
+
 def _usuario_atual():
     """Obtém o id do usuário apenas durante uma sessão autenticada."""
     try:
@@ -120,6 +167,8 @@ def criar_banco():
         cursor.execute("ALTER TABLE usuarios ADD COLUMN bloqueado_ate TEXT")
     if "ultimo_login" not in colunas_usuarios:
         cursor.execute("ALTER TABLE usuarios ADD COLUMN ultimo_login TEXT")
+    if "sessao_versao" not in colunas_usuarios:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN sessao_versao INTEGER NOT NULL DEFAULT 1")
     # Regra de administração do FinanceOS: a conta do proprietário é a única admin.
     cursor.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != 'alison.nascimento' AND perfil='admin'")
     cursor.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = 'alison.nascimento'")

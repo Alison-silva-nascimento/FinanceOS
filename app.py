@@ -5,7 +5,7 @@ from html import escape
 
 import streamlit as st
 
-from auth import obter_perfil
+from auth import obter_perfil, validar_sessao_atual
 from config import APP_NAME, APP_VERSION, AUTHOR, LAYOUT, PAGE_ICON, PAGE_TITLE, SIDEBAR_STATE
 from components.formatadores import moeda
 from components.theme import aplicar_tema
@@ -26,6 +26,10 @@ st.set_page_config(
 )
 criar_banco()
 aplicar_tema()
+
+if st.session_state.logado and not validar_sessao_atual():
+    st.session_state.clear()
+    st.rerun()
 
 if not st.session_state.logado:
     tela_login()
