@@ -237,7 +237,8 @@ def _renderizar_cabecalho_usuario():
                 else:
                     st.markdown("👤")
             with nome:
-                if st.button(dados["nome"] if dados else "Meu perfil", key="abrir_perfil_sidebar", use_container_width=True):
+                nome_exibicao = (dados["nome"] or "").strip().split()[0] if dados else "Meu perfil"
+                if st.button(nome_exibicao or "Meu perfil", key="abrir_perfil_sidebar", use_container_width=True):
                     st.switch_page("pages/00_👤_Perfil.py")
 
 
