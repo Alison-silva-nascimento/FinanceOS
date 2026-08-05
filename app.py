@@ -109,14 +109,16 @@ avatar_usuario = avatar_hero(perfil_usuario["foto_perfil"] if perfil_usuario els
 st.markdown("""
 <style>
 .block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
-.home-hero { padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
+.home-hero { position: relative; padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
 .home-hero__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .home-avatar { width: 84px; height: 84px; flex: 0 0 84px; border: 2px solid rgba(255,255,255,.62); border-radius: 50%; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
 .home-avatar--fallback { display: inline-flex; align-items: center; justify-content: center; background: rgba(15,23,42,.36); font-size: 1.5rem; }
 .home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
 .home-eyebrow { display: none; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
-@media (min-width: 701px) { .home-avatar { margin-right: clamp(2rem, 10vw, 8rem); } }
+@media (min-width: 701px) {
+  .home-avatar { position: absolute; top: 50%; right: 16%; width: 150px; height: 150px; flex-basis: 150px; margin: 0; transform: translateY(-50%); border: 3px solid rgba(255,255,255,.78); outline: 5px solid rgba(96,165,250,.15); box-shadow: 0 0 0 10px rgba(139,92,246,.10), 0 16px 30px rgba(0,0,0,.3); }
+}
 @media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
 @media (max-width: 700px) {
   .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background: radial-gradient(circle at 95% 0%, rgba(139,92,246,.3), transparent 42%), linear-gradient(120deg, rgba(30,64,175,.6), rgba(88,28,135,.46)); }
