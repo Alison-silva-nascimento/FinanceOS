@@ -119,11 +119,11 @@ st.markdown("""
 @media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
 @media (max-width: 700px) {
   .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background: radial-gradient(circle at 95% 0%, rgba(139,92,246,.3), transparent 42%), linear-gradient(120deg, rgba(30,64,175,.6), rgba(88,28,135,.46)); }
-  .home-hero__top { align-items: flex-end; }
+  .home-hero__top { align-items: flex-end; gap: .7rem; }
   .home-eyebrow { display: block; margin-bottom: .7rem; color: #bfdbfe; font-size: .67rem; font-weight: 780; letter-spacing: .12em; }
-  .home-hero h2 { margin: 0 !important; font-size: clamp(1.55rem, 7.5vw, 2rem) !important; }
+  .home-hero h2 { margin: 0 !important; font-size: clamp(1.35rem, 6vw, 1.8rem) !important; letter-spacing: -.035em; }
   .home-hero p { max-width: 28ch; margin-top: .6rem; font-size: .93rem; line-height: 1.5; }
-  .home-avatar { width: 46px; height: 46px; flex-basis: 46px; }
+  .home-avatar { width: 42px; height: 42px; flex-basis: 42px; }
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetric"],
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stMetric"] { min-height: 128px; padding: 1.15rem; border-color: rgba(96,165,250,.46); background: radial-gradient(circle at 100% 100%, rgba(96,165,250,.28), transparent 42%), linear-gradient(125deg, rgba(30,64,175,.72), rgba(67,56,202,.68)); }
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetricValue"],
