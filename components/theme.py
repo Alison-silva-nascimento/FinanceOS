@@ -126,7 +126,7 @@ def aplicar_tema():
             [data-testid="stSidebar"] { min-width:min(84vw, 340px) !important; }
             /* No celular, o menu nativo é substituído por uma versão curta e agrupada. */
             [data-testid="stSidebarNav"] { display:none !important; }
-            .st-key-mobile-nav { display:block; padding:3.25rem .15rem .75rem; }
+            .st-key-mobile-nav { display:block; padding:.8rem .15rem .75rem; }
             .st-key-mobile-nav [data-testid="stPageLink"] { margin:.1rem 0; }
             .st-key-mobile-nav [data-testid="stPageLink"] a { min-height:2.75rem !important; padding:.55rem .7rem !important; border:0; background:transparent; box-shadow:none; }
             .st-key-mobile-nav [data-testid="stPageLink"] a:hover { background:rgba(59,130,246,.15); transform:none; }
