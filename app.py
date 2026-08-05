@@ -78,20 +78,23 @@ saudacao = "☀️ Bom dia" if 7 <= hora <= 11 else "🌤️ Boa tarde" if 12 <=
 
 st.markdown("""
 <style>
-.block-container { max-width: 1180px; padding-top: 2rem; }
-.home-hero { padding: 1.5rem 1.7rem; margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
+.block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
+.home-hero { padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
 .home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
+@media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
+@media (max-width: 700px) { .home-hero { border-radius: 16px; margin-top: 0; } .home-hero h2 { font-size: 1.7rem !important; } }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown(f"<div class='home-hero'><h2>{saudacao}</h2><p>Veja o que merece sua atenção e registre a próxima movimentação.</p></div>", unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns(3)
-c1.metric("Saldo do mês", moeda(saldo), delta=f"{mes_atual}")
-c2.metric("A vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} conta(s)")
-fatura_total = sum(fatura_cartao(cartao["id"]) for cartao in cartoes)
-c3.metric("Faturas em aberto", moeda(fatura_total), f"{len(cartoes)} cartão(ões)")
+with st.container(key="home-kpis"):
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Saldo do mês", moeda(saldo), delta=f"{mes_atual}")
+    c2.metric("A vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} conta(s)")
+    fatura_total = sum(fatura_cartao(cartao["id"]) for cartao in cartoes)
+    c3.metric("Faturas em aberto", moeda(fatura_total), f"{len(cartoes)} cartão(ões)")
 
 st.subheader("⚡ Ações rápidas")
 with st.container(key="quick-actions"):
@@ -115,28 +118,29 @@ else:
                 getattr(st, nivel)(f"**{titulo}** — {texto}")
 
 st.divider()
-esquerda, direita = st.columns(2)
-with esquerda:
-    st.subheader("📅 Próximos vencimentos")
-    if not vencimentos:
-        st.info("Cadastre recorrências para receber avisos de vencimento.")
-    else:
-        for item in vencimentos[:4]:
-            st.write(f"**{item['data'].strftime('%d/%m')} · {item['descricao']}**")
-            st.caption(f"{item['categoria']} · {moeda(item['valor'])}")
-with direita:
-    st.subheader("✅ Próximo passo")
-    if recorrencias_pendentes:
-        st.info(f"Você tem {len(recorrencias_pendentes)} recorrência(s) para gerar em {mes_atual}.")
-        st.page_link("pages/10_Recorrencias.py", label="Gerar lançamentos", icon="🔁")
-    elif not metas:
-        st.info("Defina uma meta para transformar sua economia em um objetivo concreto.")
-        st.page_link("pages/07_Metas.py", label="Criar uma meta", icon="🎯")
-    elif not listar_bancos():
-        st.info("Cadastre uma conta bancária para acompanhar seu saldo disponível.")
-        st.page_link("pages/05_Bancos.py", label="Cadastrar conta", icon="🏦")
-    else:
-        st.success("Sua base está organizada. Use o Dashboard para acompanhar a evolução do mês.")
-        st.page_link("pages/01_Dashboard.py", label="Abrir Dashboard", icon="📊")
+with st.container(key="home-bottom"):
+    esquerda, direita = st.columns(2)
+    with esquerda:
+        st.subheader("📅 Próximos vencimentos")
+        if not vencimentos:
+            st.info("Cadastre recorrências para receber avisos de vencimento.")
+        else:
+            for item in vencimentos[:4]:
+                st.write(f"**{item['data'].strftime('%d/%m')} · {item['descricao']}**")
+                st.caption(f"{item['categoria']} · {moeda(item['valor'])}")
+    with direita:
+        st.subheader("✅ Próximo passo")
+        if recorrencias_pendentes:
+            st.info(f"Você tem {len(recorrencias_pendentes)} recorrência(s) para gerar em {mes_atual}.")
+            st.page_link("pages/10_Recorrencias.py", label="Gerar lançamentos", icon="🔁")
+        elif not metas:
+            st.info("Defina uma meta para transformar sua economia em um objetivo concreto.")
+            st.page_link("pages/07_Metas.py", label="Criar uma meta", icon="🎯")
+        elif not listar_bancos():
+            st.info("Cadastre uma conta bancária para acompanhar seu saldo disponível.")
+            st.page_link("pages/05_Bancos.py", label="Cadastrar conta", icon="🏦")
+        else:
+            st.success("Sua base está organizada. Use o Dashboard para acompanhar a evolução do mês.")
+            st.page_link("pages/01_Dashboard.py", label="Abrir Dashboard", icon="📊")
 
 st.caption(f"{APP_NAME} {APP_VERSION} · {AUTHOR}")

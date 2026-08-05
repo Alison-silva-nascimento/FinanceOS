@@ -30,7 +30,7 @@ O banco SQLite é criado automaticamente em `database/finance.db` na primeira ex
 
 ## Segurança e dados
 
-Os dados são armazenados localmente e associados ao usuário autenticado. Na primeira execução, crie o usuário administrador pela tela inicial; a senha é armazenada como hash PBKDF2, nunca em texto puro. O FinanceOS cria um backup consistente por dia em `backups/` e, no Windows, restringe o acesso ao banco e aos backups ao usuário que executa o app e ao sistema. O login bloqueia a conta por 10 minutos após cinco falhas consecutivas. PDFs são validados localmente (até 10 MB e 50 páginas), e imagens de perfil são verificadas antes de serem salvas. Não exponha a aplicação na internet.
+Os dados são armazenados localmente e associados ao usuário autenticado. A conta `alison.nascimento` é a única com perfil de administrador; todas as novas contas são usuários comuns. A senha é armazenada como hash PBKDF2, nunca em texto puro. O FinanceOS cria um backup consistente por dia em `backups/` e, no Windows, restringe o acesso ao banco e aos backups ao usuário que executa o app e ao sistema. O login bloqueia a conta por 10 minutos após cinco falhas consecutivas. PDFs são validados localmente (até 10 MB e 50 páginas), e imagens de perfil são verificadas antes de serem salvas. Não exponha a aplicação na internet.
 
 ## Próximos passos
 
