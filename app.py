@@ -119,6 +119,7 @@ st.markdown("""
 @media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
 @media (max-width: 700px) {
   .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background: radial-gradient(circle at 95% 0%, rgba(139,92,246,.3), transparent 42%), linear-gradient(120deg, rgba(30,64,175,.6), rgba(88,28,135,.46)); }
+  .home-hero__top { align-items: flex-end; }
   .home-eyebrow { display: block; margin-bottom: .7rem; color: #bfdbfe; font-size: .67rem; font-weight: 780; letter-spacing: .12em; }
   .home-hero h2 { margin: 0 !important; font-size: clamp(1.55rem, 7.5vw, 2rem) !important; }
   .home-hero p { max-width: 28ch; margin-top: .6rem; font-size: .93rem; line-height: 1.5; }
