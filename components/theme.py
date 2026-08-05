@@ -89,10 +89,12 @@ def aplicar_tema():
                 overflow-x:hidden !important;
             }
             .main .block-container, [data-testid="stMainBlockContainer"] {
-                width:100% !important;
+                /* Reserva a trilha recolhida do Streamlit para ela não cobrir texto. */
+                width:calc(100% - 2.15rem) !important;
                 max-width:100% !important;
                 min-width:0 !important;
-                margin:0 !important;
+                margin-left:2.15rem !important;
+                margin-right:0 !important;
                 padding:calc(7.15rem + env(safe-area-inset-top)) .9rem calc(2.4rem + env(safe-area-inset-bottom)) !important;
                 box-sizing:border-box !important;
             }
@@ -135,7 +137,7 @@ def aplicar_tema():
             .st-key-mobile-nav [data-testid="stExpander"] [data-testid="stPageLink"] a { min-height:2.45rem !important; }
             .st-key-sidebar-session { margin:.4rem .15rem .75rem; padding-top:.7rem; }
             /* No Streamlit web, a navegação superior não disputa espaço com controles fixos do navegador. */
-            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:3rem; right:0; bottom:auto; left:0; margin:0 !important; padding:.4rem .45rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.97); box-shadow:0 10px 24px rgba(0,0,0,.2); backdrop-filter:blur(14px); }
+            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:3rem; right:0; bottom:auto; left:2.15rem; margin:0 !important; padding:.4rem .45rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.97); box-shadow:0 10px 24px rgba(0,0,0,.2); backdrop-filter:blur(14px); }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] { flex-wrap:nowrap !important; gap:.25rem !important; align-items:stretch !important; }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:auto !important; min-width:0 !important; flex:1 1 0 !important; margin:0 !important; }
