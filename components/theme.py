@@ -93,7 +93,7 @@ def aplicar_tema():
                 max-width:100% !important;
                 min-width:0 !important;
                 margin:0 !important;
-                padding:1.15rem .9rem calc(6.8rem + env(safe-area-inset-bottom)) !important;
+                padding:calc(7.15rem + env(safe-area-inset-top)) .9rem calc(2.4rem + env(safe-area-inset-bottom)) !important;
                 box-sizing:border-box !important;
             }
             /* Streamlit mantém larguras calculadas em linha; sobrescrevê-las evita
@@ -134,12 +134,12 @@ def aplicar_tema():
             .st-key-mobile-nav [data-testid="stExpander"] summary { min-height:2.55rem; color:#cbd5e1; font-weight:680; }
             .st-key-mobile-nav [data-testid="stExpander"] [data-testid="stPageLink"] a { min-height:2.45rem !important; }
             .st-key-sidebar-session { margin:.4rem .15rem .75rem; padding-top:.7rem; }
-            /* Barra inferior: navegação de uma mão, sem depender de abrir o menu. */
-            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; right:0; bottom:0; left:0; margin:0 !important; padding:.45rem .45rem calc(.45rem + env(safe-area-inset-bottom)); border-top:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.96); box-shadow:0 -10px 26px rgba(0,0,0,.25); backdrop-filter:blur(14px); }
+            /* No Streamlit web, a navegação superior não disputa espaço com controles fixos do navegador. */
+            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:3rem; right:0; bottom:auto; left:0; margin:0 !important; padding:.4rem .45rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.97); box-shadow:0 10px 24px rgba(0,0,0,.2); backdrop-filter:blur(14px); }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] { flex-wrap:nowrap !important; gap:.25rem !important; align-items:stretch !important; }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:auto !important; min-width:0 !important; flex:1 1 0 !important; margin:0 !important; }
-            .st-key-mobile-bottom-nav [data-testid="stPageLink"] a { width:100% !important; min-height:2.8rem !important; padding:.35rem .12rem !important; border:0 !important; border-radius:10px !important; background:transparent; color:#cbd5e1 !important; font-size:.66rem; font-weight:680; line-height:1.1; text-align:center; justify-content:center; white-space:pre-line; box-shadow:none; }
+            .st-key-mobile-bottom-nav [data-testid="stPageLink"] a { width:100% !important; min-height:2.9rem !important; padding:.3rem .12rem !important; border:0 !important; border-radius:10px !important; background:transparent; color:#cbd5e1 !important; font-size:.68rem; font-weight:680; line-height:1.15; text-align:center; justify-content:center; white-space:pre-line; box-shadow:none; }
             .st-key-mobile-bottom-nav [data-testid="stPageLink"] a:hover,
             .st-key-mobile-bottom-nav [data-testid="stPageLink"] a[aria-current="page"] { background:linear-gradient(110deg,rgba(37,99,235,.32),rgba(124,58,237,.30)) !important; color:#fff !important; transform:none; }
             .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
