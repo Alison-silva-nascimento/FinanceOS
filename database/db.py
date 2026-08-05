@@ -120,6 +120,9 @@ def criar_banco():
         cursor.execute("ALTER TABLE usuarios ADD COLUMN bloqueado_ate TEXT")
     if "ultimo_login" not in colunas_usuarios:
         cursor.execute("ALTER TABLE usuarios ADD COLUMN ultimo_login TEXT")
+    # Regra de administração do FinanceOS: a conta do proprietário é a única admin.
+    cursor.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != 'alison.nascimento' AND perfil='admin'")
+    cursor.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = 'alison.nascimento'")
     cursor.execute("""CREATE TABLE IF NOT EXISTS eventos_seguranca(
         id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER, acao TEXT NOT NULL,
         detalhes TEXT, criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
@@ -302,6 +305,56 @@ def migrar_compras_cartao(cartao_origem_id, cartao_destino_id, competencia):
     if not destino:
         conn.close(); raise ValueError("Cartão de destino inválido.")
     cursor = conn.execute("UPDATE compras_cartao SET cartao_id=? WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_destino_id, cartao_origem_id, competencia, usuario_id))
+    conn.commit(); conn.close()
+    return cursor.rowcount
+
+
+def listar_duplicatas_compra_cartao(cartao_id, competencia):
+    """Identifica repetições exatas de uma compra dentro da mesma fatura."""
+    usuario_id = _usuario_atual(); conn = conectar()
+    dados = conn.execute("""
+        SELECT data, descricao, valor, parcelas, parcela_atual,
+               COUNT(*) AS quantidade, GROUP_CONCAT(id) AS ids
+        FROM compras_cartao
+        WHERE cartao_id=? AND competencia=? AND usuario_id=?
+        GROUP BY data, descricao, valor, parcelas, parcela_atual
+        HAVING COUNT(*) > 1
+        ORDER BY data DESC, descricao
+    """, (cartao_id, competencia, usuario_id)).fetchall()
+    conn.close(); return dados
+
+
+def remover_duplicatas_compra_cartao(cartao_id, competencia):
+    """Mantém o registro mais antigo de cada compra exatamente duplicada."""
+    usuario_id = _usuario_atual(); conn = conectar()
+    grupos = conn.execute("""
+        SELECT MIN(id) AS manter_id, GROUP_CONCAT(id) AS ids
+        FROM compras_cartao
+        WHERE cartao_id=? AND competencia=? AND usuario_id=?
+        GROUP BY data, descricao, valor, parcelas, parcela_atual
+        HAVING COUNT(*) > 1
+    """, (cartao_id, competencia, usuario_id)).fetchall()
+    removidas = 0
+    for grupo in grupos:
+        ids = [int(valor) for valor in grupo["ids"].split(",") if int(valor) != grupo["manter_id"]]
+        if ids:
+            marcadores = ",".join("?" for _ in ids)
+            cursor = conn.execute(f"DELETE FROM compras_cartao WHERE id IN ({marcadores}) AND usuario_id=?", (*ids, usuario_id))
+            removidas += cursor.rowcount
+    conn.commit(); conn.close()
+    return removidas
+
+
+def remover_faturas_cartao(cartao_id, competencia=None):
+    """Remove somente compras ainda não pagas de uma ou todas as faturas do cartão."""
+    usuario_id = _usuario_atual(); conn = conectar()
+    if not conn.execute("SELECT id FROM cartoes WHERE id=? AND usuario_id=?", (cartao_id, usuario_id)).fetchone():
+        conn.close(); raise ValueError("Cartão inválido.")
+    sql = "DELETE FROM compras_cartao WHERE cartao_id=? AND usuario_id=? AND paga=0"
+    parametros = [cartao_id, usuario_id]
+    if competencia:
+        sql += " AND competencia=?"; parametros.append(competencia)
+    cursor = conn.execute(sql, parametros)
     conn.commit(); conn.close()
     return cursor.rowcount
 

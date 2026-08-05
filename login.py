@@ -172,25 +172,49 @@ def tela_login():
             )
             return
 
-        with st.form("login"):
-            usuario = st.text_input("Usuário")
-            senha = st.text_input("Senha", type="password")
-            entrar = st.form_submit_button("Entrar", use_container_width=True)
+        aba_entrar, aba_cadastrar = st.tabs(["Entrar", "Cadastrar-se"])
+        with aba_entrar:
+            with st.form("login"):
+                usuario = st.text_input("Usuário", help="Formato: nome.sobrenome")
+                senha = st.text_input("Senha", type="password")
+                entrar = st.form_submit_button("Entrar", use_container_width=True)
 
-        if entrar:
-            if login_bloqueado(usuario):
-                st.error("Esta conta está temporariamente bloqueada. Aguarde 10 minutos e tente novamente.")
-            elif perfil := autenticar(usuario, senha):
-                st.session_state.logado = True
-                st.session_state.usuario = usuario.strip()
-                st.session_state.usuario_id = perfil["id"]
-                st.session_state.perfil = perfil["perfil"]
-                st.rerun()
-            else:
-                if registrar_falha_login(usuario):
-                    st.error("Muitas tentativas. Esta conta foi bloqueada por 10 minutos.")
+            if entrar:
+                if login_bloqueado(usuario):
+                    st.error("Esta conta está temporariamente bloqueada. Aguarde 10 minutos e tente novamente.")
+                elif perfil := autenticar(usuario, senha):
+                    st.session_state.logado = True
+                    st.session_state.usuario = usuario.strip()
+                    st.session_state.usuario_id = perfil["id"]
+                    st.session_state.perfil = perfil["perfil"]
+                    st.rerun()
                 else:
-                    st.error("Usuário ou senha inválidos.")
+                    if registrar_falha_login(usuario):
+                        st.error("Muitas tentativas. Esta conta foi bloqueada por 10 minutos.")
+                    else:
+                        st.error("Usuário ou senha inválidos.")
+
+        with aba_cadastrar:
+            st.caption("Crie seu acesso. Suas receitas, despesas, cartões e relatórios ficarão separados dos demais usuários.")
+            with st.form("cadastrar_usuario"):
+                nome_novo = st.text_input("Nome completo")
+                usuario_novo = st.text_input("Usuário", help="Formato obrigatório: nome.sobrenome, em minúsculas. Ex.: maria.silva")
+                senha_nova = st.text_input("Senha", type="password", help="Mínimo de 10 caracteres, com maiúscula, minúscula e número ou símbolo.")
+                confirmar_nova = st.text_input("Confirmar senha", type="password")
+                cadastrar = st.form_submit_button("Criar minha conta", use_container_width=True)
+            if cadastrar:
+                if senha_nova != confirmar_nova:
+                    st.error("As senhas não coincidem.")
+                else:
+                    sucesso, mensagem = criar_usuario(nome_novo, usuario_novo, senha_nova)
+                    if sucesso:
+                        perfil = autenticar(usuario_novo, senha_nova)
+                        st.session_state.logado = True
+                        st.session_state.usuario = usuario_novo.strip()
+                        st.session_state.usuario_id = perfil["id"]
+                        st.session_state.perfil = perfil["perfil"]
+                        st.rerun()
+                    st.error(mensagem) if not sucesso else None
 
         st.markdown(
             '<div class="login-trust"><span>🔒 Acesso protegido</span><span>•</span><span>Dados armazenados localmente</span></div>',

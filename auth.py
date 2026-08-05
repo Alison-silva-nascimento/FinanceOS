@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import re
 import secrets
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -12,6 +13,24 @@ from database.db import conectar, registrar_evento
 ITERACOES_PBKDF2 = 600_000
 MAX_FOTO_BYTES = 2 * 1024 * 1024
 MAX_PIXELS_FOTO = 16_000_000
+
+
+def _validar_usuario(usuario):
+    if not re.fullmatch(r"[a-z]+(?:\.[a-z]+)+", usuario.strip()):
+        return False, "Use o formato nome.sobrenome, apenas com letras minúsculas."
+    return True, ""
+
+
+def _validar_senha(senha):
+    if len(senha) < 10:
+        return False, "A senha deve ter pelo menos 10 caracteres."
+    if not any(caractere.isupper() for caractere in senha):
+        return False, "A senha deve conter ao menos uma letra maiúscula."
+    if not any(caractere.islower() for caractere in senha):
+        return False, "A senha deve conter ao menos uma letra minúscula."
+    if not any(caractere.isdigit() or not caractere.isalnum() for caractere in senha):
+        return False, "A senha deve conter ao menos um número ou caractere especial."
+    return True, ""
 
 
 def _gerar_hash(senha, sal=None):
@@ -45,18 +64,24 @@ def possui_usuario():
 
 
 def criar_usuario(nome, usuario, senha):
-    if len(senha) < 10:
-        return False, "A senha deve ter pelo menos 10 caracteres."
     if not nome.strip() or not usuario.strip():
         return False, "Informe nome e usuário."
+    usuario = usuario.strip()
+    valido, mensagem = _validar_usuario(usuario)
+    if not valido:
+        return False, mensagem
+    valido, mensagem = _validar_senha(senha)
+    if not valido:
+        return False, mensagem
 
     conn = conectar()
     try:
-        conn.execute(
-            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, 'usuario')",
-            (nome.strip(), usuario.strip(), _gerar_hash(senha)),
+        cursor = conn.execute(
+            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
+            (nome.strip(), usuario, _gerar_hash(senha), "usuario"),
         )
         conn.commit()
+        registrar_evento(cursor.lastrowid, "Conta criada")
         return True, "Usuário criado com sucesso."
     except Exception as erro:
         if "UNIQUE constraint failed" in str(erro):
@@ -112,8 +137,9 @@ def registrar_falha_login(usuario):
 
 
 def alterar_senha(usuario, senha_atual, nova_senha):
-    if len(nova_senha) < 10:
-        return False, "A nova senha deve ter pelo menos 10 caracteres."
+    valida, mensagem = _validar_senha(nova_senha)
+    if not valida:
+        return False, mensagem
     if not autenticar(usuario, senha_atual):
         return False, "A senha atual está incorreta."
     conn = conectar()

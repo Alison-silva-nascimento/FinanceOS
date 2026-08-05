@@ -10,7 +10,7 @@ def aplicar_tema():
         :root { --blue:#3b82f6; --violet:#8b5cf6; --surface:rgba(19,28,48,.82); --surface-strong:#121c31; --border:rgba(148,163,184,.18); --border-strong:rgba(148,163,184,.30); --text:#e6edf7; --muted:#94a3b8; --space-1:.5rem; --space-2:.75rem; --space-3:1rem; --space-4:1.5rem; --space-5:2rem; }
         .stApp { background:radial-gradient(circle at 6% 10%,rgba(37,99,235,.12),transparent 25rem),radial-gradient(circle at 94% 75%,rgba(124,58,237,.11),transparent 26rem),#0b1120; color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
         [data-testid="stHeader"] { background:rgba(11,17,32,.75); }
-        [data-testid="stMainBlockContainer"] { max-width:1280px; padding-top:2.4rem; padding-bottom:3.25rem; }
+        [data-testid="stMainBlockContainer"] { max-width:1440px; padding-top:2.4rem; padding-bottom:3.25rem; }
         [data-testid="stVerticalBlock"] { gap:var(--space-3); }
         h1,h2,h3 { color:#f8fafc !important; letter-spacing:-.025em; line-height:1.15; } h1 { font-weight:780 !important; } h2 { font-weight:740 !important; margin-top:var(--space-5) !important; } h3 { font-weight:700 !important; }
         [data-testid="stCaptionContainer"],.stCaption { color:var(--muted) !important; }
@@ -27,6 +27,8 @@ def aplicar_tema():
            e deve abrir a navegação. */
         [data-testid="stSidebarNav"] ul { display:flex; flex-direction:column; }
         [data-testid="stSidebarNav"] li:has(a[href*="Perfil"]) { order:-1; }
+        [data-testid="stSidebarNav"] li:has(a[href*="Perfil"]) { display:none; }
+        [data-testid="stSidebarNav"] ul { padding-top:3.25rem; }
         [data-testid="stSidebarNav"] a:hover { background:rgba(59,130,246,.16); transform:translateX(3px); }
         [data-testid="stSidebarNav"] a[aria-current="page"] { background:linear-gradient(100deg,rgba(37,99,235,.85),rgba(124,58,237,.78)); }
 
@@ -61,6 +63,24 @@ def aplicar_tema():
         hr { border-color:var(--border) !important; }
         [data-testid="stPlotlyChart"] { padding:.6rem; border:1px solid var(--border); border-radius:16px; background:rgba(15,23,42,.45); }
         .st-key-mobile-nav { display:none; }
+        [data-testid="stSidebar"] { position:relative; }
+        .st-key-sidebar-user { position:absolute; z-index:4; top:3rem; left:.65rem; right:.65rem; margin:0; }
+        .st-key-sidebar-user [data-testid="stHorizontalBlock"] { align-items:center; gap:.35rem; }
+        .st-key-sidebar-user img { width:24px !important; height:24px !important; border-radius:50% !important; object-fit:cover; }
+        .st-key-sidebar-user .stButton > button { width:100%; max-width:152px; min-height:2.2rem; padding:.35rem .55rem; justify-content:flex-start; background:linear-gradient(100deg,#2563eb,#5b35d5) !important; border:0 !important; box-shadow:none; font-size:.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .st-key-sidebar-session { margin:.35rem .5rem .75rem; padding-top:.8rem; border-top:1px solid var(--border); }
+        .st-key-sidebar-session .stButton > button { min-height:2.5rem; background:rgba(30,41,59,.88) !important; border-color:rgba(96,165,250,.48) !important; box-shadow:none; }
+        @media (min-width: 1200px) {
+            [data-testid="stMainBlockContainer"] { width:calc(100% - 4.5rem) !important; max-width:1440px !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1100px) {
+            [data-testid="stMainBlockContainer"] { padding-left:1.5rem; padding-right:1.5rem; }
+            .st-key-home-kpis [data-testid="stHorizontalBlock"], .st-key-home-bottom [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; }
+            .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"], .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:0 0 calc(50% - .45rem) !important; width:calc(50% - .45rem) !important; }
+            .st-key-home-bottom [data-testid="stHorizontalBlock"] > [data-testid="stColumn"], .st-key-home-bottom [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:0 0 100% !important; width:100% !important; }
+            .st-key-quick-actions [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; }
+            .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="stColumn"], .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:0 0 calc(33.333% - .5rem) !important; width:calc(33.333% - .5rem) !important; }
+        }
         /* Layout mobile-first: cada grupo de colunas vira uma sequência vertical. */
         @media (max-width: 768px) {
             html, body, [data-testid="stAppViewContainer"], section.main {
@@ -106,13 +126,19 @@ def aplicar_tema():
             [data-testid="stSidebar"] { min-width:min(82vw, 320px) !important; }
             /* No celular, o menu nativo é substituído por uma versão curta e agrupada. */
             [data-testid="stSidebarNav"] { display:none !important; }
-            .st-key-mobile-nav { display:block; padding:.35rem .15rem 1rem; }
+            .st-key-mobile-nav { display:block; padding:3.55rem .15rem 1rem; }
             .st-key-mobile-nav [data-testid="stPageLink"] { margin:.1rem 0; }
             .st-key-mobile-nav [data-testid="stPageLink"] a { min-height:2.75rem !important; padding:.55rem .7rem !important; border:0; background:transparent; box-shadow:none; }
             .st-key-mobile-nav [data-testid="stPageLink"] a:hover { background:rgba(59,130,246,.15); transform:none; }
             .st-key-mobile-nav [data-testid="stExpander"] { margin-top:.6rem; padding:.15rem .7rem; border-radius:12px !important; box-shadow:none; }
             .st-key-mobile-nav [data-testid="stExpander"] summary { color:#cbd5e1; }
             .st-key-mobile-nav [data-testid="stExpander"] [data-testid="stPageLink"] a { min-height:2.45rem !important; }
+            .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+            .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:auto !important; min-width:0 !important; margin:0 !important; }
+            .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child,
+            .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child { flex:0 0 34px !important; }
+            .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child,
+            .st-key-sidebar-user [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child { flex:1 1 0 !important; }
             .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
             .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:calc(50% - .35rem) !important; flex:0 0 calc(50% - .35rem) !important; }
             .st-key-quick-actions [data-testid="stPageLink"] a { min-height:2.85rem !important; padding:.55rem .65rem !important; font-size:.86rem; }
@@ -131,20 +157,22 @@ def aplicar_tema():
         """,
         unsafe_allow_html=True,
     )
+    _renderizar_cabecalho_usuario()
     _renderizar_navegacao_mobile()
+    _renderizar_sessao_sidebar()
 
 
 def _renderizar_navegacao_mobile():
     """Atalhos compactos exibidos somente por CSS em telas pequenas."""
     with st.sidebar:
         with st.container(key="mobile-nav"):
-            st.page_link("pages/00_👤_Perfil.py", label="Perfil")
             st.page_link("app.py", label="Início")
             st.page_link("pages/01_Dashboard.py", label="Análises")
             st.page_link("pages/02_Receitas.py", label="Receitas")
             st.page_link("pages/03_Despesas.py", label="Despesas")
             st.page_link("pages/04_Cartoes.py", label="Cartões")
             st.page_link("pages/04_Controle_de_gastos.py", label="Controle de gastos")
+            st.page_link("pages/04_Importar_fatura.py", label="Importar fatura")
             with st.expander("Mais opções"):
                 st.page_link("pages/05_Bancos.py", label="Bancos")
                 st.page_link("pages/06_Patrimonio.py", label="Patrimônio")
@@ -156,4 +184,36 @@ def _renderizar_navegacao_mobile():
                 st.page_link("pages/12_Holerite.py", label="Holerite")
                 st.page_link("pages/13_Conciliação.py", label="Conciliação")
                 st.page_link("pages/14_Relatórios.py", label="Relatórios")
-                st.page_link("pages/16_Importar_fatura.py", label="Importar fatura")
+
+
+def _renderizar_cabecalho_usuario():
+    """Atalho de perfil com foto e nome, visível em desktop e mobile."""
+    if not st.session_state.get("logado"):
+        return
+    try:
+        from auth import obter_perfil
+        dados = obter_perfil(st.session_state.get("usuario"))
+    except Exception:
+        dados = None
+    with st.sidebar:
+        with st.container(key="sidebar-user"):
+            foto, nome = st.columns([1, 6])
+            with foto:
+                if dados and dados["foto_perfil"]:
+                    st.image(dados["foto_perfil"])
+                else:
+                    st.markdown("👤")
+            with nome:
+                if st.button(dados["nome"] if dados else "Meu perfil", key="abrir_perfil_sidebar", use_container_width=True):
+                    st.switch_page("pages/00_👤_Perfil.py")
+
+
+def _renderizar_sessao_sidebar():
+    """Mantém a saída acessível no fim da navegação em todas as páginas internas."""
+    if not st.session_state.get("logado"):
+        return
+    with st.sidebar:
+        with st.container(key="sidebar-session"):
+            if st.button("Sair da conta", use_container_width=True, key="sair_sidebar"):
+                st.session_state.clear()
+                st.rerun()
