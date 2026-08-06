@@ -36,26 +36,31 @@ opcoes_cartoes = {c['id']: f"{c['nome']} · {c['banco']}" for c in cartoes}
 tab_nubank, tab_mercado = st.tabs(["Nubank · PDF", "Mercado Pago · PDF/CSV"])
 
 with tab_nubank:
-    st.caption("PDF de até 10 MB, sem senha e com no máximo 50 páginas.")
+    st.caption("Envie o PDF da fatura Nubank e confira os lançamentos antes de importar.")
+    competencia_nubank = st.text_input("Competência da fatura", value=date.today().strftime("%Y-%m"), key="competencia_nubank", help="Ex.: 2026-08")
     arquivo_nubank = st.file_uploader("Fatura Nubank em PDF", type=["pdf"], key="arquivo_nubank")
     if arquivo_nubank and st.button("Ler PDF", type="primary", key="ler_nubank"):
-        try:
-            st.session_state["compras_nubank"] = ler_fatura(arquivo_nubank)
-            cartao_nubank = next((c['id'] for c in cartoes if "nubank" in f"{c['nome']} {c['banco']}".lower()), None)
-            if cartao_nubank:
-                st.session_state["cartao_importacao_nubank"] = cartao_nubank
-            st.success(f"{len(st.session_state['compras_nubank'])} compra(s) reconhecida(s).")
-        except RuntimeError as erro:
-            st.error(str(erro))
+        if len(competencia_nubank) != 7 or competencia_nubank[4] != "-":
+            st.error("Informe a competência no formato AAAA-MM.")
+        else:
+            try:
+                compras_lidas = ler_fatura(arquivo_nubank)
+                for compra in compras_lidas:
+                    compra["competencia"] = competencia_nubank
+                st.session_state["compras_nubank"] = compras_lidas
+                cartao_nubank = next((c['id'] for c in cartoes if "nubank" in f"{c['nome']} {c['banco']}".lower()), None)
+                if cartao_nubank:
+                    st.session_state["cartao_importacao_nubank"] = cartao_nubank
+                st.success(f"{len(compras_lidas)} compra(s) reconhecida(s). Revise antes de importar.")
+            except RuntimeError as erro:
+                st.error(str(erro))
 
     compras_nubank = st.session_state.get("compras_nubank", [])
     if compras_nubank:
-        df = pd.DataFrame(compras_nubank)
-        df["valor_parcela"] = df["valor_parcela"].map(moeda)
-        st.dataframe(df.rename(columns={"competencia":"Fatura", "valor_parcela":"Valor da parcela", "parcela_atual":"Parcela atual", "parcelas":"Total de parcelas"}), hide_index=True, use_container_width=True)
+        editadas = st.data_editor(pd.DataFrame(compras_nubank), hide_index=True, use_container_width=True, key="revisao_nubank")
         cartao_id = st.selectbox("Associar ao cartão", list(opcoes_cartoes), format_func=opcoes_cartoes.get, key="cartao_importacao_nubank")
         if st.button("Importar compras revisadas", use_container_width=True, key="importar_nubank"):
-            total = importar_compras(compras_nubank, cartao_id, "Nubank")
+            total = importar_compras(editadas.to_dict("records"), cartao_id, "Nubank")
             st.success(f"{total} compra(s) importada(s). Compras iguais foram ignoradas.")
             del st.session_state["compras_nubank"]
 
