@@ -5,7 +5,13 @@ from datetime import date
 from auth import exigir_login
 from components.formatadores import moeda
 from components.theme import aplicar_tema
-from database.db import adicionar_compra_cartao, listar_cartoes, listar_compras_cartao, registrar_evento, salvar_resumo_fatura
+from database.db import adicionar_compra_cartao, listar_cartoes, listar_compras_cartao, registrar_evento
+try:
+    from database.db import salvar_resumo_fatura
+except ImportError:
+    # Compatibilidade com instalações em que db.py ainda não foi atualizado.
+    def salvar_resumo_fatura(cartao_id, competencia, total_a_pagar, origem="Nubank"):
+        return None
 from utils.mercado_pago_fatura import ler_csv_fatura, ler_pdf_fatura
 from utils.nubank_fatura import extrair_resumo_fatura_pdf, ler_csv_fatura as ler_csv_nubank, ler_fatura
 

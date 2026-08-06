@@ -7,7 +7,13 @@ from components.theme import aplicar_tema
 from database.db import (editar_categoria_compra, listar_cartoes, listar_compras_cartao,
                          listar_duplicatas_compra_cartao, migrar_compras_cartao,
                          registrar_evento, remover_duplicatas_compra_cartao,
-                         remover_faturas_cartao, obter_resumo_fatura)
+                         remover_faturas_cartao)
+try:
+    from database.db import obter_resumo_fatura
+except ImportError:
+    # Evita falha em um deploy parcial; a métrica detalhada volta ao atualizar db.py.
+    def obter_resumo_fatura(cartao_id, competencia):
+        return None
 
 aplicar_tema(); exigir_login()
 st.title("🎯 Controle de gastos do cartão")
