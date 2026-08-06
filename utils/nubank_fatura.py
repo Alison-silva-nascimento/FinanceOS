@@ -8,7 +8,8 @@ from io import BytesIO
 from utils.arquivos import obter_pdf_seguro
 
 MESES = {"JAN":1,"FEV":2,"MAR":3,"ABR":4,"MAI":5,"JUN":6,"JUL":7,"AGO":8,"SET":9,"OUT":10,"NOV":11,"DEZ":12}
-IGNORAR = ("pagamento", "desconto de antecipação", "iof complementar", "crédito de parcelamento", "encerramento de dívida", "renegociação", "limite convertido", "antecipada -")
+IGNORAR = ("pagamento recebido", "desconto de antecip", "iof complementar", "encerramento de divida", "limite convertido", "antecipada -")
+IGNORAR_PDF = ("encerramento de divida", "antecipada -", "renegociacao de pendencias", "limite convertido", "iof complementar por renegociacao")
 
 def categorizar(descricao):
     texto = descricao.lower()
@@ -38,8 +39,8 @@ def ler_fatura(arquivo):
     padrao = re.compile(r"(?m)^(\d{2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(.+?)\s+R\$\s*([\d.]+,\d{2})")
     for dia, mes, descricao, valor in padrao.findall(texto):
         descricao = " ".join(descricao.replace("\n", " ").split())
-        normalizada = descricao.lower()
-        if any(termo in normalizada for termo in IGNORAR):
+        normalizada = _normalizar_coluna(descricao)
+        if any(termo in normalizada for termo in IGNORAR_PDF):
             continue
         parcela = re.search(r"Parcela\s+(\d+)/(\d+)", descricao, re.I)
         atual, total = (int(parcela.group(1)), int(parcela.group(2))) if parcela else (1, 1)
@@ -51,6 +52,23 @@ def ler_fatura(arquivo):
     if not transacoes:
         raise RuntimeError("Nenhuma compra reconhecida. Revise se este é o PDF da fatura Nubank.")
     return transacoes
+
+
+def extrair_resumo_fatura_pdf(arquivo):
+    """Retorna competência, período e total a pagar de uma fatura Nubank em PDF."""
+    try:
+        from pypdf import PdfReader
+        leitor = PdfReader(BytesIO(obter_pdf_seguro(arquivo)))
+    except Exception as erro:
+        raise RuntimeError("Não foi possível abrir o PDF da fatura Nubank.") from erro
+    texto = "\n".join(p.extract_text() or "" for p in leitor.pages)
+    referencia = re.search(r"FATURA\s+\d{2}\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(20\d{2})", texto)
+    total = re.search(r"(?:Total a pagar|Pagamento total da fatura)\s*R\$\s*([\d.]+,\d{2})", texto, re.I)
+    periodo = re.search(r"Per[ií]odo vigente:\s*(\d{2}\s+[A-Z]{3}\s+a\s+\d{2}\s+[A-Z]{3})", texto, re.I)
+    if not referencia or not total:
+        raise RuntimeError("Não identifiquei o resumo da fatura Nubank no PDF.")
+    competencia = f"{referencia.group(2)}-{MESES[referencia.group(1)]:02d}"
+    return {"competencia": competencia, "total_a_pagar": _brl(total.group(1)), "periodo": periodo.group(1) if periodo else None}
 
 
 def _normalizar_coluna(valor):
@@ -107,13 +125,23 @@ def ler_csv_fatura(arquivo, competencia):
         data = _data_csv(linha.get(coluna_data, ""))
         descricao = " ".join(str(linha.get(coluna_descricao, "")).split())
         try:
-            valor = abs(_valor_csv(linha.get(coluna_valor, "")))
+            valor = _valor_csv(linha.get(coluna_valor, ""))
         except ValueError:
             continue
-        if data and descricao and valor:
+        normalizada = _normalizar_coluna(descricao)
+        credito_parcelamento = "parcelamento de compra" in normalizada
+        # Pagamentos e descontos de antecipação não pertencem à fatura em aberto.
+        # Já o crédito de parcelamento reduz o valor da própria fatura e deve ser preservado.
+        if any(termo in normalizada for termo in IGNORAR) or "renegociacao de pendencias" in normalizada:
+            continue
+        if valor <= 0 and not credito_parcelamento:
+            continue
+        parcela = re.search(r"(?:PARCELA\s*)?(\d+)\s*/\s*(\d+)", descricao, re.I)
+        atual, total = (int(parcela.group(1)), int(parcela.group(2))) if parcela else (1, 1)
+        if data and descricao:
             compras.append({
                 "data": data, "descricao": descricao, "valor_parcela": valor,
-                "parcela_atual": 1, "parcelas": 1,
+                "parcela_atual": atual, "parcelas": total,
                 "categoria": categorizar(descricao), "competencia": competencia,
             })
     if not compras:

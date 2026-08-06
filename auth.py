@@ -16,6 +16,26 @@ MAX_PIXELS_FOTO = 16_000_000
 USUARIO_ADMIN = "alison.nascimento"
 
 
+def validar_sessao_atual():
+    """Invalida sessões antigas após uma redefinição administrativa de senha."""
+    try:
+        import streamlit as st
+
+        if not st.session_state.get("logado"):
+            return False
+        perfil = obter_perfil(st.session_state.get("usuario"))
+        if not perfil:
+            return False
+        versao_atual = perfil["sessao_versao"] or 1
+        versao_sessao = st.session_state.get("sessao_versao")
+        if versao_sessao is None:
+            st.session_state.sessao_versao = versao_atual
+            return True
+        return int(versao_sessao) == int(versao_atual)
+    except Exception:
+        return False
+
+
 def _validar_usuario(usuario):
     if not re.fullmatch(r"[a-z]+(?:\.[a-z]+)+", usuario.strip()):
         return False, "Use o formato nome.sobrenome, apenas com letras minúsculas."
@@ -270,22 +290,3 @@ def exigir_login():
         st.session_state.clear()
         st.switch_page("app.py")
 
-
-def validar_sessao_atual():
-    """Invalida sessões antigas após uma redefinição administrativa de senha."""
-    try:
-        import streamlit as st
-
-        if not st.session_state.get("logado"):
-            return False
-        perfil = obter_perfil(st.session_state.get("usuario"))
-        if not perfil:
-            return False
-        versao_atual = perfil["sessao_versao"] or 1
-        versao_sessao = st.session_state.get("sessao_versao")
-        if versao_sessao is None:
-            st.session_state.sessao_versao = versao_atual
-            return True
-        return int(versao_sessao) == int(versao_atual)
-    except Exception:
-        return False

@@ -24,9 +24,11 @@ from components.cards import kpi_card
 from components.theme import aplicar_tema
 from datetime import datetime
 from auth import exigir_login
+from database.db import criar_banco
 
 aplicar_tema()
 exigir_login()
+criar_banco()
 
 # ==========================================
 # MODAL DE EDIÇÃO
@@ -111,25 +113,45 @@ if "id_receita" not in st.session_state:
 st.title("💰 Receitas")
 
 # ==========================================
-# KPIs
+# PERÍODO E KPIs
 # ==========================================
 
-kpis = calcular_kpis()
+todas_receitas = obter_receitas()
+mes_atual = datetime.today().strftime("%Y-%m")
+competencias = sorted({str(receita["data"])[:7] for receita in todas_receitas if receita["data"]}, reverse=True)
+if mes_atual not in competencias:
+    competencias.insert(0, mes_atual)
+
+with st.container(border=True):
+    periodo_info, periodo_seletor = st.columns([3, 2])
+    with periodo_info:
+        st.markdown("#### 🗓️ Período das receitas")
+        st.caption("Escolha o mês para consultar os lançamentos, indicadores e análises.")
+    with periodo_seletor:
+        competencia_selecionada = st.selectbox("Competência", competencias, key="competencia_receitas")
+
+receitas_periodo = [
+    receita for receita in todas_receitas
+    if str(receita["data"]).startswith(competencia_selecionada)
+]
+valor_periodo = sum(float(receita["valor"]) for receita in receitas_periodo)
+quantidade_periodo = len(receitas_periodo)
+media_periodo = valor_periodo / quantidade_periodo if quantidade_periodo else 0
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     kpi_card(
-        "Total Receitas",
-        moeda(kpis["valor_total"]),
+        f"Receitas em {competencia_selecionada}",
+        moeda(valor_periodo),
         "💰",
         "#14532D"
     )
 
 with col2:
     kpi_card(
-        "Quantidade",
-        str(kpis["total_receitas"]),
+        "Lançamentos",
+        str(quantidade_periodo),
         "📄",
         "#1E3A8A"
     )
@@ -137,9 +159,9 @@ with col2:
 
 with col3:
     kpi_card(
-        f"Receita do mês · {kpis['mes_atual']}",
-        moeda(kpis["receita_mes"]),
-        "🗓️",
+        "Média por lançamento",
+        moeda(media_periodo),
+        "📈",
         "#7C3AED"
     )
 
@@ -287,7 +309,7 @@ pesquisa = st.text_input(
 
 
 
-receitas = obter_receitas()
+receitas = list(receitas_periodo)
 
 
 if pesquisa:

@@ -13,12 +13,14 @@ import subprocess
 from datetime import date, datetime
 from pathlib import Path
 
-DB_FILE = Path(__file__).parent / "finance.db"
-BACKUP_DIR = DB_FILE.parent.parent / "backups"
+# Permite bancos isolados em testes e volumes persistentes em instalações próprias.
+# Na ausência das variáveis, mantém a estrutura local atual do FinanceOS.
+DB_FILE = Path(os.environ.get("FINANCEOS_DB_FILE", Path(__file__).parent / "finance.db"))
+BACKUP_DIR = Path(os.environ.get("FINANCEOS_BACKUP_DIR", DB_FILE.parent.parent / "backups"))
 
 TABELAS_FINANCEIRAS = (
     "receitas", "despesas", "cartoes", "bancos", "orcamentos", "metas",
-    "patrimonio", "recorrencias", "compras_cartao", "transferencias", "holerites", "conciliacoes", "faturas_pagas",
+    "patrimonio", "recorrencias", "compras_cartao", "transferencias", "holerites", "conciliacoes", "faturas_pagas", "faturas_resumo",
 )
 
 
@@ -213,6 +215,7 @@ def criar_banco():
         id INTEGER PRIMARY KEY AUTOINCREMENT, competencia TEXT NOT NULL,
         salario_bruto REAL NOT NULL DEFAULT 0, inss REAL NOT NULL DEFAULT 0,
         irrf REAL NOT NULL DEFAULT 0, consignado REAL NOT NULL DEFAULT 0,
+        adiantamento_salarial REAL NOT NULL DEFAULT 0,
         pat REAL NOT NULL DEFAULT 0, unimed REAL NOT NULL DEFAULT 0,
         fgts REAL NOT NULL DEFAULT 0, outros_descontos REAL NOT NULL DEFAULT 0,
         salario_liquido REAL NOT NULL DEFAULT 0,
@@ -226,9 +229,14 @@ def criar_banco():
         id INTEGER PRIMARY KEY AUTOINCREMENT, cartao_id INTEGER NOT NULL, competencia TEXT NOT NULL,
         banco_id INTEGER, valor REAL NOT NULL, pago_em TEXT NOT NULL, usuario_id INTEGER,
         UNIQUE(cartao_id, competencia, usuario_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS faturas_resumo(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, cartao_id INTEGER NOT NULL, competencia TEXT NOT NULL,
+        total_a_pagar REAL NOT NULL, origem TEXT, usuario_id INTEGER,
+        atualizado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(cartao_id, competencia, usuario_id))""")
 
     colunas_holerites = {linha["name"] for linha in cursor.execute("PRAGMA table_info(holerites)")}
-    for coluna in ("pat", "unimed", "fgts"):
+    for coluna in ("adiantamento_salarial", "pat", "unimed", "fgts"):
         if coluna not in colunas_holerites:
             cursor.execute(f"ALTER TABLE holerites ADD COLUMN {coluna} REAL NOT NULL DEFAULT 0")
 
@@ -346,7 +354,33 @@ def adicionar_compra_cartao(cartao_id, data, descricao, categoria, valor, parcel
 
 def listar_compras_cartao(cartao_id):
     usuario_id = _usuario_atual(); conn = conectar(); dados = conn.execute("SELECT * FROM compras_cartao WHERE cartao_id=? AND usuario_id=? ORDER BY data DESC", (cartao_id,usuario_id)).fetchall(); conn.close(); return dados
-def fatura_cartao(cartao_id): return sum(item["valor"] / item["parcelas"] for item in listar_compras_cartao(cartao_id) if not item["paga"])
+def fatura_cartao(cartao_id, competencia=None):
+    """Retorna o total aberto do cartão.
+
+    Quando há um resumo de fatura importado (por exemplo, o total mostrado no
+    Nubank), ele prevalece sobre a soma das compras categorizadas do ciclo.
+    Assim, encargos, saldo anterior ou créditos não deixam o painel divergente.
+    """
+    usuario_id = _usuario_atual(); conn = conectar()
+    sql = "SELECT * FROM compras_cartao WHERE cartao_id=? AND usuario_id=? AND paga=0"
+    parametros = [cartao_id, usuario_id]
+    if competencia:
+        sql += " AND competencia=?"; parametros.append(competencia)
+    compras = conn.execute(sql, parametros).fetchall()
+    if not compras:
+        conn.close()
+        return 0.0
+    if competencia:
+        resumo = conn.execute(
+            "SELECT total_a_pagar FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?",
+            (cartao_id, competencia, usuario_id),
+        ).fetchone()
+        if resumo:
+            conn.close()
+            return float(resumo["total_a_pagar"])
+    total = sum(item["valor"] / item["parcelas"] for item in compras)
+    conn.close()
+    return total
 
 def editar_categoria_compra(registro_id, categoria):
     usuario_id = _usuario_atual(); conn = conectar(); conn.execute("UPDATE compras_cartao SET categoria=? WHERE id=? AND usuario_id=?", (categoria,registro_id,usuario_id)); conn.commit(); conn.close()
@@ -361,6 +395,15 @@ def migrar_compras_cartao(cartao_origem_id, cartao_destino_id, competencia):
     if not destino:
         conn.close(); raise ValueError("Cartão de destino inválido.")
     cursor = conn.execute("UPDATE compras_cartao SET cartao_id=? WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_destino_id, cartao_origem_id, competencia, usuario_id))
+    resumo = conn.execute("SELECT total_a_pagar, origem FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_origem_id, competencia, usuario_id)).fetchone()
+    if resumo:
+        conn.execute("""INSERT INTO faturas_resumo(cartao_id,competencia,total_a_pagar,origem,usuario_id)
+                        VALUES(?,?,?,?,?)
+                        ON CONFLICT(cartao_id,competencia,usuario_id)
+                        DO UPDATE SET total_a_pagar=excluded.total_a_pagar, origem=excluded.origem,
+                                      atualizado_em=CURRENT_TIMESTAMP""",
+                     (cartao_destino_id, competencia, resumo["total_a_pagar"], resumo["origem"], usuario_id))
+        conn.execute("DELETE FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_origem_id, competencia, usuario_id))
     conn.commit(); conn.close()
     return cursor.rowcount
 
@@ -411,6 +454,10 @@ def remover_faturas_cartao(cartao_id, competencia=None):
     if competencia:
         sql += " AND competencia=?"; parametros.append(competencia)
     cursor = conn.execute(sql, parametros)
+    if competencia:
+        conn.execute("DELETE FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_id, competencia, usuario_id))
+    else:
+        conn.execute("DELETE FROM faturas_resumo WHERE cartao_id=? AND usuario_id=?", (cartao_id, usuario_id))
     conn.commit(); conn.close()
     return cursor.rowcount
 
@@ -424,7 +471,26 @@ def gastos_cartao_categoria(mes=None):
     conn.close(); return dados
 
 def fatura_cartao_mes(cartao_id, mes):
-    return sum(item["valor"] / item["parcelas"] for item in listar_compras_cartao(cartao_id) if item["competencia"] == mes and not item["paga"])
+    return fatura_cartao(cartao_id, mes)
+
+
+def salvar_resumo_fatura(cartao_id, competencia, total_a_pagar, origem="Nubank"):
+    """Guarda o total efetivo a pagar, separado das compras categorizadas do ciclo."""
+    usuario_id = _usuario_atual(); conn = conectar()
+    conn.execute("""
+        INSERT INTO faturas_resumo(cartao_id,competencia,total_a_pagar,origem,usuario_id)
+        VALUES(?,?,?,?,?)
+        ON CONFLICT(cartao_id,competencia,usuario_id)
+        DO UPDATE SET total_a_pagar=excluded.total_a_pagar, origem=excluded.origem,
+                      atualizado_em=CURRENT_TIMESTAMP
+    """, (cartao_id, competencia, total_a_pagar, origem, usuario_id))
+    conn.commit(); conn.close()
+
+
+def obter_resumo_fatura(cartao_id, competencia):
+    usuario_id = _usuario_atual(); conn = conectar()
+    resumo = conn.execute("SELECT * FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_id, competencia, usuario_id)).fetchone()
+    conn.close(); return resumo
 
 def pagar_fatura(cartao_id, mes, banco_id, valor, pago_em):
     usuario_id = _usuario_atual(); conn = conectar()
@@ -522,15 +588,15 @@ def gerar_recorrencias(mes):
 
 
 # Holerites
-def salvar_holerite(competencia, salario_bruto, inss, irrf, consignado, pat, unimed, fgts, outros_descontos, salario_liquido, arquivo_nome):
+def salvar_holerite(competencia, salario_bruto, inss, irrf, consignado, adiantamento_salarial, pat, unimed, fgts, outros_descontos, salario_liquido, arquivo_nome):
     """Salva os indicadores de um holerite, sem guardar o arquivo original."""
     usuario_id = _usuario_atual(); conn = conectar()
     existente = conn.execute("SELECT id FROM holerites WHERE competencia=? AND usuario_id=?", (competencia, usuario_id)).fetchone()
-    valores = (salario_bruto, inss, irrf, consignado, pat, unimed, fgts, outros_descontos, salario_liquido, arquivo_nome)
+    valores = (salario_bruto, inss, irrf, consignado, adiantamento_salarial, pat, unimed, fgts, outros_descontos, salario_liquido, arquivo_nome)
     if existente:
-        conn.execute("UPDATE holerites SET salario_bruto=?, inss=?, irrf=?, consignado=?, pat=?, unimed=?, fgts=?, outros_descontos=?, salario_liquido=?, arquivo_nome=? WHERE id=? AND usuario_id=?", (*valores, existente["id"], usuario_id))
+        conn.execute("UPDATE holerites SET salario_bruto=?, inss=?, irrf=?, consignado=?, adiantamento_salarial=?, pat=?, unimed=?, fgts=?, outros_descontos=?, salario_liquido=?, arquivo_nome=? WHERE id=? AND usuario_id=?", (*valores, existente["id"], usuario_id))
     else:
-        conn.execute("INSERT INTO holerites(competencia,salario_bruto,inss,irrf,consignado,pat,unimed,fgts,outros_descontos,salario_liquido,arquivo_nome,usuario_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (competencia, *valores, usuario_id))
+        conn.execute("INSERT INTO holerites(competencia,salario_bruto,inss,irrf,consignado,adiantamento_salarial,pat,unimed,fgts,outros_descontos,salario_liquido,arquivo_nome,usuario_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", (competencia, *valores, usuario_id))
     conn.commit(); conn.close()
 
 

@@ -20,6 +20,7 @@ from services.despesas_service import (
     remover_despesa,
     calcular_kpis,
 )
+from database.db import gerar_recorrencias
 
 from components.cards import kpi_card
 from components.theme import aplicar_tema
@@ -27,6 +28,7 @@ from auth import exigir_login
 
 aplicar_tema()
 exigir_login()
+gerar_recorrencias(datetime.today().strftime("%Y-%m"))
 
 # ==========================================
 # MODAL DE EDIÇÃO
@@ -121,18 +123,38 @@ st.title("💸 Despesas")
 
 
 # ==========================================
-# KPIs
+# PERÍODO E KPIs
 # ==========================================
 
-kpis = calcular_kpis()
+todas_despesas = obter_despesas()
+mes_atual = datetime.today().strftime("%Y-%m")
+competencias = sorted({str(despesa["data"])[:7] for despesa in todas_despesas if despesa["data"]}, reverse=True)
+if mes_atual not in competencias:
+    competencias.insert(0, mes_atual)
+
+with st.container(border=True):
+    periodo_info, periodo_seletor = st.columns([3, 2])
+    with periodo_info:
+        st.markdown("#### 🗓️ Período das despesas")
+        st.caption("Escolha o mês para consultar os lançamentos, indicadores e análises.")
+    with periodo_seletor:
+        competencia_selecionada = st.selectbox("Competência", competencias, key="competencia_despesas")
+
+despesas_periodo = [
+    despesa for despesa in todas_despesas
+    if str(despesa["data"]).startswith(competencia_selecionada)
+]
+valor_periodo = sum(float(despesa["valor"]) for despesa in despesas_periodo)
+quantidade_periodo = len(despesas_periodo)
+media_periodo = valor_periodo / quantidade_periodo if quantidade_periodo else 0
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
 
     kpi_card(
-        "Total Despesas",
-        moeda(kpis["valor_total"]),
+        f"Despesas em {competencia_selecionada}",
+        moeda(valor_periodo),
         "💸",
         "#991B1B"
     )
@@ -140,8 +162,8 @@ with col1:
 with col2:
 
     kpi_card(
-        "Quantidade",
-        str(kpis["total_despesas"]),
+        "Lançamentos",
+        str(quantidade_periodo),
         "📄",
         "#1E3A8A"
     )
@@ -149,8 +171,8 @@ with col2:
 with col3:
 
     kpi_card(
-        "Média",
-        moeda(kpis["media"]),
+        "Média por lançamento",
+        moeda(media_periodo),
         "📉",
         "#DC2626"
     )
@@ -284,7 +306,7 @@ pesquisa = st.text_input(
     placeholder="Descrição ou categoria..."
 )
 
-despesas = obter_despesas()
+despesas = list(despesas_periodo)
 
 if pesquisa:
 
