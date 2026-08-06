@@ -9,6 +9,7 @@ from database.db import (
     listar_despesas,
     proximos_vencimentos,
     listar_bancos,
+    listar_holerites,
     listar_metas,
     listar_patrimonio,
     projecao_mes,
@@ -75,6 +76,7 @@ despesas = [d for d in despesas if str(d["data"]).startswith(mes_referencia)]
 bancos = listar_bancos()
 metas = listar_metas()
 patrimonio = listar_patrimonio()
+holerite_mes = next((item for item in listar_holerites() if item["competencia"] == mes_referencia), None)
 projecao = projecao_mes(mes_referencia)
 gastos_cartao = gastos_cartao_categoria(mes_referencia)
 
@@ -201,6 +203,42 @@ with c4:
         "#7C3AED"
 
     )
+
+if holerite_mes:
+    descontos_folha = [
+        ("INSS", holerite_mes["inss"]),
+        ("IRRF", holerite_mes["irrf"]),
+        ("Consignado", holerite_mes["consignado"]),
+        ("PAT", holerite_mes["pat"]),
+        ("Unimed", holerite_mes["unimed"]),
+        ("Outros descontos", holerite_mes["outros_descontos"]),
+    ]
+    descontos_folha = [(nome, valor) for nome, valor in descontos_folha if valor > 0]
+    total_descontos_folha = sum(valor for _, valor in descontos_folha)
+    percentual_descontos = (total_descontos_folha / holerite_mes["salario_bruto"] * 100) if holerite_mes["salario_bruto"] else 0
+
+    st.divider()
+    st.subheader("🧾 Folha salarial")
+    st.caption(f"Detalhamento do holerite de {mes_referencia}. FGTS é exibido separadamente porque não reduz o salário líquido.")
+    folha_a, folha_b, folha_c, folha_d = st.columns(4)
+    folha_a.metric("Salário bruto", moeda(holerite_mes["salario_bruto"]))
+    folha_b.metric("Descontos", moeda(total_descontos_folha), f"{percentual_descontos:.1f}% do bruto")
+    folha_c.metric("Salário líquido", moeda(holerite_mes["salario_liquido"]))
+    folha_d.metric("FGTS do mês", moeda(holerite_mes["fgts"]), "Depósito do empregador")
+
+    if descontos_folha:
+        grafico_folha, detalhes_folha = st.columns([1, 1])
+        with grafico_folha:
+            df_folha = pd.DataFrame(descontos_folha, columns=["Desconto", "Valor"])
+            fig_folha = px.pie(df_folha, names="Desconto", values="Valor", hole=.58)
+            fig_folha.update_layout(paper_bgcolor="rgba(0,0,0,0)", font_color="#e2e8f0", margin=dict(l=10, r=10, t=20, b=10), height=310)
+            st.plotly_chart(fig_folha, use_container_width=True)
+        with detalhes_folha:
+            st.markdown("#### Descontos identificados")
+            for nome, valor in descontos_folha:
+                percentual = valor / total_descontos_folha * 100 if total_descontos_folha else 0
+                st.write(f"**{nome}** · {moeda(valor)}")
+                st.progress(percentual / 100, text=f"{percentual:.1f}% dos descontos")
 
 st.divider()
 

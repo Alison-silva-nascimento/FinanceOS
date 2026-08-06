@@ -7,7 +7,7 @@ from components.formatadores import moeda
 from components.theme import aplicar_tema
 from database.db import adicionar_compra_cartao, listar_cartoes, listar_compras_cartao, registrar_evento
 from utils.mercado_pago_fatura import ler_csv_fatura, ler_pdf_fatura
-from utils.nubank_fatura import ler_fatura
+from utils.nubank_fatura import ler_csv_fatura as ler_csv_nubank, ler_fatura
 
 
 def importar_compras(compras, cartao_id, origem):
@@ -33,18 +33,19 @@ if not cartoes:
     st.stop()
 
 opcoes_cartoes = {c['id']: f"{c['nome']} · {c['banco']}" for c in cartoes}
-tab_nubank, tab_mercado = st.tabs(["Nubank · PDF", "Mercado Pago · PDF/CSV"])
+tab_nubank, tab_mercado, tab_outros = st.tabs(["Nubank", "Mercado Pago", "Outros"])
 
 with tab_nubank:
-    st.caption("Envie o PDF da fatura Nubank e confira os lançamentos antes de importar.")
+    st.caption("Envie o PDF ou CSV da Nubank e confira os lançamentos antes de importar.")
     competencia_nubank = st.text_input("Competência da fatura", value=date.today().strftime("%Y-%m"), key="competencia_nubank", help="Ex.: 2026-08")
-    arquivo_nubank = st.file_uploader("Fatura Nubank em PDF", type=["pdf"], key="arquivo_nubank")
-    if arquivo_nubank and st.button("Ler PDF", type="primary", key="ler_nubank"):
+    arquivo_nubank = st.file_uploader("Fatura Nubank", type=["pdf", "csv"], key="arquivo_nubank")
+    if arquivo_nubank and st.button("Ler arquivo", type="primary", key="ler_nubank"):
         if len(competencia_nubank) != 7 or competencia_nubank[4] != "-":
             st.error("Informe a competência no formato AAAA-MM.")
         else:
             try:
-                compras_lidas = ler_fatura(arquivo_nubank)
+                leitor = ler_csv_nubank if arquivo_nubank.name.lower().endswith(".csv") else ler_fatura
+                compras_lidas = leitor(arquivo_nubank, competencia_nubank) if leitor is ler_csv_nubank else leitor(arquivo_nubank)
                 for compra in compras_lidas:
                     compra["competencia"] = competencia_nubank
                 st.session_state["compras_nubank"] = compras_lidas
@@ -91,3 +92,6 @@ with tab_mercado:
             total = importar_compras(compras_revisadas, cartao_id, "Mercado Pago")
             st.success(f"{total} parcela(s) importada(s). Compras iguais foram ignoradas.")
             del st.session_state["compras_mercado_pago"]
+
+with tab_outros:
+    st.info("Em breve, esta área reunirá importações de outros bancos e cartões. Por enquanto, cadastre a compra manualmente em Cartões ou use Despesas para lançamentos avulsos.")

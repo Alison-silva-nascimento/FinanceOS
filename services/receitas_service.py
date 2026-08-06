@@ -5,6 +5,7 @@ from database.db import (
     editar_receita as db_editar_receita,
     excluir_receita,
 )
+from datetime import date
 
 # =========================================
 # RECEITAS
@@ -93,14 +94,17 @@ def calcular_kpis():
         for r in receitas
     )
 
-    media = 0
-
-    if total_receitas > 0:
-        media = valor_total / total_receitas
+    mes_atual = date.today().strftime("%Y-%m")
+    receita_mes = sum(
+        receita["valor"]
+        for receita in receitas
+        if str(receita["data"]).startswith(mes_atual)
+    )
 
     return {
         "total_receitas": total_receitas,
         "valor_total": valor_total,
-        "media": media,
+        "receita_mes": receita_mes,
+        "mes_atual": mes_atual,
     }
 
