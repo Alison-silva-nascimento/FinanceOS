@@ -147,7 +147,7 @@ st.markdown(f"<div class='home-hero'><div class='home-hero__top'><div><span clas
 with st.container(key="home-kpis"):
     c1, c2, c3 = st.columns(3)
     c1.metric("Saldo disponível", moeda(saldo_disponivel), delta=mes_atual)
-    c2.metric("A vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} conta(s)")
+    c2.metric("Despesas fixas a vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} despesa(s) fixa(s)")
     fatura_total = sum(fatura_cartao(cartao["id"]) for cartao in cartoes)
     c3.metric("Faturas em aberto", moeda(fatura_total), f"{len(cartoes)} cartão(ões)")
 

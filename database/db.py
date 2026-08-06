@@ -213,7 +213,9 @@ def criar_banco():
         id INTEGER PRIMARY KEY AUTOINCREMENT, competencia TEXT NOT NULL,
         salario_bruto REAL NOT NULL DEFAULT 0, inss REAL NOT NULL DEFAULT 0,
         irrf REAL NOT NULL DEFAULT 0, consignado REAL NOT NULL DEFAULT 0,
-        outros_descontos REAL NOT NULL DEFAULT 0, salario_liquido REAL NOT NULL DEFAULT 0,
+        pat REAL NOT NULL DEFAULT 0, unimed REAL NOT NULL DEFAULT 0,
+        fgts REAL NOT NULL DEFAULT 0, outros_descontos REAL NOT NULL DEFAULT 0,
+        salario_liquido REAL NOT NULL DEFAULT 0,
         arquivo_nome TEXT, usuario_id INTEGER, criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(competencia, usuario_id))""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS conciliacoes(
@@ -224,6 +226,11 @@ def criar_banco():
         id INTEGER PRIMARY KEY AUTOINCREMENT, cartao_id INTEGER NOT NULL, competencia TEXT NOT NULL,
         banco_id INTEGER, valor REAL NOT NULL, pago_em TEXT NOT NULL, usuario_id INTEGER,
         UNIQUE(cartao_id, competencia, usuario_id))""")
+
+    colunas_holerites = {linha["name"] for linha in cursor.execute("PRAGMA table_info(holerites)")}
+    for coluna in ("pat", "unimed", "fgts"):
+        if coluna not in colunas_holerites:
+            cursor.execute(f"ALTER TABLE holerites ADD COLUMN {coluna} REAL NOT NULL DEFAULT 0")
 
     # Migração não destrutiva de bancos criados antes do isolamento por usuário.
     for tabela in TABELAS_FINANCEIRAS:
@@ -515,15 +522,15 @@ def gerar_recorrencias(mes):
 
 
 # Holerites
-def salvar_holerite(competencia, salario_bruto, inss, irrf, consignado, outros_descontos, salario_liquido, arquivo_nome):
+def salvar_holerite(competencia, salario_bruto, inss, irrf, consignado, pat, unimed, fgts, outros_descontos, salario_liquido, arquivo_nome):
     """Salva os indicadores de um holerite, sem guardar o arquivo original."""
     usuario_id = _usuario_atual(); conn = conectar()
     existente = conn.execute("SELECT id FROM holerites WHERE competencia=? AND usuario_id=?", (competencia, usuario_id)).fetchone()
-    valores = (salario_bruto, inss, irrf, consignado, outros_descontos, salario_liquido, arquivo_nome)
+    valores = (salario_bruto, inss, irrf, consignado, pat, unimed, fgts, outros_descontos, salario_liquido, arquivo_nome)
     if existente:
-        conn.execute("UPDATE holerites SET salario_bruto=?, inss=?, irrf=?, consignado=?, outros_descontos=?, salario_liquido=?, arquivo_nome=? WHERE id=? AND usuario_id=?", (*valores, existente["id"], usuario_id))
+        conn.execute("UPDATE holerites SET salario_bruto=?, inss=?, irrf=?, consignado=?, pat=?, unimed=?, fgts=?, outros_descontos=?, salario_liquido=?, arquivo_nome=? WHERE id=? AND usuario_id=?", (*valores, existente["id"], usuario_id))
     else:
-        conn.execute("INSERT INTO holerites(competencia,salario_bruto,inss,irrf,consignado,outros_descontos,salario_liquido,arquivo_nome,usuario_id) VALUES(?,?,?,?,?,?,?,?,?)", (competencia, *valores, usuario_id))
+        conn.execute("INSERT INTO holerites(competencia,salario_bruto,inss,irrf,consignado,pat,unimed,fgts,outros_descontos,salario_liquido,arquivo_nome,usuario_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (competencia, *valores, usuario_id))
     conn.commit(); conn.close()
 
 

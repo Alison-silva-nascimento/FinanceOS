@@ -137,9 +137,9 @@ with col2:
 
 with col3:
     kpi_card(
-        "Média",
-        moeda(kpis["media"]),
-        "📈",
+        f"Receita do mês · {kpis['mes_atual']}",
+        moeda(kpis["receita_mes"]),
+        "🗓️",
         "#7C3AED"
     )
 

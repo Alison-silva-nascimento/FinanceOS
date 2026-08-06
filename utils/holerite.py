@@ -49,9 +49,12 @@ def interpretar_holerite(texto):
     inss = _buscar_linha(linhas, [r"\bINSS\b"])
     irrf = _buscar_linha(linhas, [r"\bIRRF\b", r"IMPOSTO\s+DE\s+RENDA"])
     consignado = _buscar_linha(linhas, [r"CONSIGNAD"])
+    pat = _buscar_linha(linhas, [r"DESCONTO\s+PAT", r"\bPAT\b"])
+    unimed = _buscar_linha(linhas, [r"COPARTICIPACAO\s+UNIMED", r"CARTAO\s+UNIMED", r"\bUNIMED\b"])
+    fgts = _buscar_linha(linhas, [r"FGTS\s+DO\s+MES", r"\bFGTS\b"])
     liquido = _buscar_linha(linhas, [r"LIQUIDO\s+A\s+RECEBER", r"TOTAL\s+LIQUIDO", r"VALOR\s+LIQUIDO"])
     total_descontos = _buscar_linha(linhas, [r"TOTAL\s+DESCONTOS"])
-    outros = max(total_descontos - inss - irrf - consignado, 0.0)
+    outros = max(total_descontos - inss - irrf - consignado - pat - unimed, 0.0)
 
     competencia = None
     correspondencia = re.search(r"\b(0[1-9]|1[0-2])[/-]((?:20)?\d{2})\b", _normalizar(texto))
@@ -66,6 +69,9 @@ def interpretar_holerite(texto):
         "inss": inss,
         "irrf": irrf,
         "consignado": consignado,
+        "pat": pat,
+        "unimed": unimed,
+        "fgts": fgts,
         "outros_descontos": outros,
         "salario_liquido": liquido,
     }
