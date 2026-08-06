@@ -59,10 +59,15 @@ def obter_receita_por_id(id_receita):
 # =========================================
 
 def buscar_receitas(texto):
-    """
-    Busca receitas por descrição.
-    """
-    pass
+    """Busca receitas por descrição ou categoria, sem diferenciar maiúsculas."""
+    termo = (texto or "").strip().casefold()
+    if not termo:
+        return obter_receitas()
+    return [
+        receita for receita in obter_receitas()
+        if termo in (receita["descricao"] or "").casefold()
+        or termo in (receita["categoria"] or "").casefold()
+    ]
 
 
 def filtrar_receitas(
@@ -70,10 +75,18 @@ def filtrar_receitas(
     ano=None,
     categoria=None
 ):
-    """
-    Filtra receitas.
-    """
-    pass
+    """Filtra receitas por mês, ano e/ou categoria."""
+    resultado = obter_receitas()
+    if ano:
+        resultado = [receita for receita in resultado if str(receita["data"]).startswith(f"{int(ano):04d}-")]
+    if mes:
+        competencia = str(mes)
+        if len(competencia) <= 2 and ano:
+            competencia = f"{int(ano):04d}-{int(competencia):02d}"
+        resultado = [receita for receita in resultado if str(receita["data"]).startswith(competencia)]
+    if categoria and categoria != "Todas":
+        resultado = [receita for receita in resultado if receita["categoria"] == categoria]
+    return resultado
 
 
 # =========================================

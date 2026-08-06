@@ -61,10 +61,15 @@ def obter_despesa_por_id(id_despesa):
 # =========================================
 
 def buscar_despesas(texto):
-    """
-    Busca despesas por descrição.
-    """
-    pass
+    """Busca despesas por descrição ou categoria, sem diferenciar maiúsculas."""
+    termo = (texto or "").strip().casefold()
+    if not termo:
+        return obter_despesas()
+    return [
+        despesa for despesa in obter_despesas()
+        if termo in (despesa["descricao"] or "").casefold()
+        or termo in (despesa["categoria"] or "").casefold()
+    ]
 
 
 def filtrar_despesas(
@@ -72,10 +77,18 @@ def filtrar_despesas(
     ano=None,
     categoria=None
 ):
-    """
-    Filtra despesas.
-    """
-    pass
+    """Filtra despesas por mês, ano e/ou categoria."""
+    resultado = obter_despesas()
+    if ano:
+        resultado = [despesa for despesa in resultado if str(despesa["data"]).startswith(f"{int(ano):04d}-")]
+    if mes:
+        competencia = str(mes)
+        if len(competencia) <= 2 and ano:
+            competencia = f"{int(ano):04d}-{int(competencia):02d}"
+        resultado = [despesa for despesa in resultado if str(despesa["data"]).startswith(competencia)]
+    if categoria and categoria != "Todas":
+        resultado = [despesa for despesa in resultado if despesa["categoria"] == categoria]
+    return resultado
 
 
 # =========================================

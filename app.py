@@ -12,7 +12,7 @@ from components.theme import aplicar_tema
 from database.db import (
     criar_banco, fatura_cartao, listar_bancos, listar_cartoes, listar_despesas,
     listar_metas, listar_orcamentos, listar_receitas, listar_recorrencias,
-    proximos_vencimentos,
+    proximos_vencimentos, gerar_recorrencias,
 )
 from login import tela_login
 
@@ -39,6 +39,9 @@ if not st.session_state.logado:
 
 hoje = date.today()
 mes_atual = hoje.strftime("%Y-%m")
+# As contas recorrentes passam a integrar o painel assim que o usuário abre o
+# FinanceOS no novo mês. A função controla `ultimo_mes`, portanto não duplica.
+gerar_recorrencias(mes_atual)
 receitas_cadastradas = listar_receitas()
 receitas = [item for item in receitas_cadastradas if str(item["data"]).startswith(mes_atual)]
 despesas = [item for item in listar_despesas() if str(item["data"]).startswith(mes_atual)]
@@ -63,7 +66,7 @@ for item in orcamentos:
     elif uso >= 0.8:
         alertas.append(("warning", f"Orçamento perto do limite: {item['categoria']}", f"Você já usou {uso:.0%} do orçamento mensal."))
 for cartao in cartoes:
-    fatura = fatura_cartao(cartao["id"])
+    fatura = fatura_cartao(cartao["id"], mes_atual)
     uso = fatura / cartao["limite"] if cartao["limite"] else 0
     if uso >= 0.7:
         alertas.append(("warning", f"Limite do cartão em {uso:.0%}", f"{cartao['nome']}: fatura em aberto de {moeda(fatura)}."))
@@ -115,11 +118,12 @@ avatar_usuario = avatar_hero(perfil_usuario["foto_perfil"] if perfil_usuario els
 st.markdown("""
 <style>
 .block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
-.home-hero { position: relative; padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.28); border-radius: 20px; background: linear-gradient(120deg, rgba(30,64,175,.42), rgba(88,28,135,.32)); }
-.home-hero__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.home-hero { position: relative; overflow:hidden; padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.35); border-radius: 20px; background:linear-gradient(120deg,rgba(29,78,216,.52),rgba(67,56,202,.38) 56%,rgba(109,40,217,.32)); box-shadow:0 18px 42px rgba(0,0,0,.2); }
+.home-hero::after { content:""; position:absolute; width:15rem; height:15rem; right:-5rem; top:-8rem; border-radius:50%; background:rgba(191,219,254,.13); box-shadow:-4rem 8rem 0 rgba(167,139,250,.09); pointer-events:none; }
+.home-hero__top { position:relative; z-index:1; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .home-avatar { width: 84px; height: 84px; flex: 0 0 84px; border: 2px solid rgba(255,255,255,.62); border-radius: 50%; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
 .home-avatar--fallback { display: inline-flex; align-items: center; justify-content: center; background: rgba(15,23,42,.36); font-size: 1.5rem; }
-.home-hero p { margin: .35rem 0 0; color: #cbd5e1; }
+.home-hero p { position:relative; z-index:1; margin: .35rem 0 0; color: #dbeafe; }
 .home-eyebrow { display: none; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
 @media (min-width: 701px) {
@@ -127,7 +131,7 @@ st.markdown("""
 }
 @media (min-width: 1200px) { .home-hero { min-height: 142px; display: flex; flex-direction: column; justify-content: center; } }
 @media (max-width: 700px) {
-  .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background: radial-gradient(circle at 95% 0%, rgba(139,92,246,.3), transparent 42%), linear-gradient(120deg, rgba(30,64,175,.6), rgba(88,28,135,.46)); }
+  .home-hero { padding: 1.35rem 1.2rem; border-radius: 18px; margin: 0 0 1rem; background:linear-gradient(120deg,rgba(29,78,216,.52),rgba(67,56,202,.38) 56%,rgba(109,40,217,.32)); }
   .home-hero__top { align-items: flex-end; gap: .7rem; }
   .home-eyebrow { display: block; margin-bottom: .7rem; color: #bfdbfe; font-size: .67rem; font-weight: 780; letter-spacing: .12em; }
   .home-hero h2 { margin: 0 !important; font-size: clamp(1.35rem, 6vw, 1.8rem) !important; letter-spacing: -.035em; }
@@ -148,8 +152,9 @@ with st.container(key="home-kpis"):
     c1, c2, c3 = st.columns(3)
     c1.metric("Saldo disponível", moeda(saldo_disponivel), delta=mes_atual)
     c2.metric("Despesas fixas a vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} despesa(s) fixa(s)")
-    fatura_total = sum(fatura_cartao(cartao["id"]) for cartao in cartoes)
-    c3.metric("Faturas em aberto", moeda(fatura_total), f"{len(cartoes)} cartão(ões)")
+    faturas_abertas = [fatura_cartao(cartao["id"], mes_atual) for cartao in cartoes]
+    fatura_total = sum(faturas_abertas)
+    c3.metric("Faturas em aberto", moeda(fatura_total), f"{sum(valor > 0 for valor in faturas_abertas)} cartão(ões)")
 
 st.subheader("⚡ Ações rápidas")
 with st.container(key="quick-actions"):

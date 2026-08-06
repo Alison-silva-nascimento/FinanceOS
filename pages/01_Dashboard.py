@@ -9,11 +9,13 @@ from database.db import (
     listar_despesas,
     proximos_vencimentos,
     listar_bancos,
+    criar_banco,
     listar_holerites,
     listar_metas,
     listar_patrimonio,
     projecao_mes,
     gastos_cartao_categoria,
+    gerar_recorrencias,
 )
 
 from components.cards import kpi_card
@@ -32,6 +34,8 @@ st.set_page_config(
 )
 aplicar_tema()
 exigir_login()
+criar_banco()
+gerar_recorrencias(datetime.now().strftime("%Y-%m"))
 
 # ======================================================
 # CSS
@@ -70,7 +74,18 @@ receitas = listar_receitas()
 despesas = listar_despesas()
 
 mes_atual = datetime.now().strftime("%Y-%m")
-mes_referencia = st.sidebar.text_input("📅 Mês do painel", value=mes_atual, help="Formato AAAA-MM")
+with st.container(border=True):
+    periodo_info, periodo_input = st.columns([1.35, 1])
+    with periodo_info:
+        st.markdown("#### 📅 Período do Dashboard")
+        st.caption("Escolha o mês para visualizar saldo, despesas, receitas e a folha salarial.")
+    with periodo_input:
+        mes_referencia = st.text_input(
+            "Competência",
+            value=mes_atual,
+            key="mes_dashboard",
+            help="Formato AAAA-MM. Exemplo: 2026-07",
+        )
 receitas = [r for r in receitas if str(r["data"]).startswith(mes_referencia)]
 despesas = [d for d in despesas if str(d["data"]).startswith(mes_referencia)]
 bancos = listar_bancos()
@@ -91,6 +106,26 @@ economia = 0
 if total_receitas>0:
 
     economia=(saldo/total_receitas)*100
+
+
+def valor_holerite(campo):
+    return float(holerite_mes[campo]) if holerite_mes and campo in holerite_mes.keys() and holerite_mes[campo] else 0.0
+
+
+if holerite_mes:
+    destaque_titulo = "Salário recebido no mês"
+    destaque_valor = valor_holerite("adiantamento_salarial") + valor_holerite("salario_liquido")
+    destaque_primeiro_rotulo = "Adiantamento"
+    destaque_primeiro_valor = valor_holerite("adiantamento_salarial")
+    destaque_segundo_rotulo = "Salário líquido final"
+    destaque_segundo_valor = valor_holerite("salario_liquido")
+else:
+    destaque_titulo = "Receitas do mês"
+    destaque_valor = total_receitas
+    destaque_primeiro_rotulo = "Receitas"
+    destaque_primeiro_valor = total_receitas
+    destaque_segundo_rotulo = "Despesas"
+    destaque_segundo_valor = total_despesas
 
 # ======================================================
 # SAUDAÇÃO
@@ -125,12 +160,12 @@ f"""
 
 <section class="saldo-card">
   <div class="saldo-card__content">
-    <div class="small-title">Saldo do mês</div>
-    <div class="big-money">{moeda(saldo)}</div>
+    <div class="small-title">{destaque_titulo}</div>
+    <div class="big-money">{moeda(destaque_valor)}</div>
   </div>
   <div class="saldo-card__summary">
-    <div><span>Receitas</span><strong>{moeda(total_receitas)}</strong></div>
-    <div><span>Despesas</span><strong>{moeda(total_despesas)}</strong></div>
+    <div><span>{destaque_primeiro_rotulo}</span><strong>{moeda(destaque_primeiro_valor)}</strong></div>
+    <div><span>{destaque_segundo_rotulo}</span><strong>{moeda(destaque_segundo_valor)}</strong></div>
   </div>
 </section>
 
@@ -180,7 +215,7 @@ with c3:
 
     kpi_card(
 
-        "Saldo",
+        "Saldo do mês",
 
         moeda(saldo),
 
@@ -206,25 +241,26 @@ with c4:
 
 if holerite_mes:
     descontos_folha = [
-        ("INSS", holerite_mes["inss"]),
-        ("IRRF", holerite_mes["irrf"]),
-        ("Consignado", holerite_mes["consignado"]),
-        ("PAT", holerite_mes["pat"]),
-        ("Unimed", holerite_mes["unimed"]),
-        ("Outros descontos", holerite_mes["outros_descontos"]),
+        ("INSS", valor_holerite("inss")),
+        ("IRRF", valor_holerite("irrf")),
+        ("Consignado", valor_holerite("consignado")),
+        ("Adiantamento salarial", valor_holerite("adiantamento_salarial")),
+        ("PAT", valor_holerite("pat")),
+        ("Unimed", valor_holerite("unimed")),
+        ("Outros descontos", valor_holerite("outros_descontos")),
     ]
     descontos_folha = [(nome, valor) for nome, valor in descontos_folha if valor > 0]
     total_descontos_folha = sum(valor for _, valor in descontos_folha)
-    percentual_descontos = (total_descontos_folha / holerite_mes["salario_bruto"] * 100) if holerite_mes["salario_bruto"] else 0
+    percentual_descontos = (total_descontos_folha / valor_holerite("salario_bruto") * 100) if valor_holerite("salario_bruto") else 0
 
     st.divider()
     st.subheader("🧾 Folha salarial")
     st.caption(f"Detalhamento do holerite de {mes_referencia}. FGTS é exibido separadamente porque não reduz o salário líquido.")
     folha_a, folha_b, folha_c, folha_d = st.columns(4)
-    folha_a.metric("Salário bruto", moeda(holerite_mes["salario_bruto"]))
+    folha_a.metric("Salário bruto", moeda(valor_holerite("salario_bruto")))
     folha_b.metric("Descontos", moeda(total_descontos_folha), f"{percentual_descontos:.1f}% do bruto")
-    folha_c.metric("Salário líquido", moeda(holerite_mes["salario_liquido"]))
-    folha_d.metric("FGTS do mês", moeda(holerite_mes["fgts"]), "Depósito do empregador")
+    folha_c.metric("Salário líquido final", moeda(valor_holerite("salario_liquido")))
+    folha_d.metric("FGTS do mês", moeda(valor_holerite("fgts")), "Depósito do empregador")
 
     if descontos_folha:
         grafico_folha, detalhes_folha = st.columns([1, 1])
