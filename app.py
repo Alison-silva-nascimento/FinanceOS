@@ -55,6 +55,14 @@ orcamentos = listar_orcamentos(mes_atual)
 metas = listar_metas()
 recorrencias_pendentes = [item for item in listar_recorrencias() if item["ultimo_mes"] != mes_atual]
 
+
+def fatura_aberta_do_mes(cartao_id):
+    """Compatibilidade temporária com instalações ainda não migradas do banco."""
+    try:
+        return fatura_cartao(cartao_id, mes_atual)
+    except TypeError:
+        return fatura_cartao(cartao_id)
+
 alertas = []
 if saldo < 0:
     alertas.append(("error", "Saldo negativo", f"Suas despesas superam as receitas em {moeda(abs(saldo))} neste mês."))
@@ -66,7 +74,7 @@ for item in orcamentos:
     elif uso >= 0.8:
         alertas.append(("warning", f"Orçamento perto do limite: {item['categoria']}", f"Você já usou {uso:.0%} do orçamento mensal."))
 for cartao in cartoes:
-    fatura = fatura_cartao(cartao["id"], mes_atual)
+    fatura = fatura_aberta_do_mes(cartao["id"])
     uso = fatura / cartao["limite"] if cartao["limite"] else 0
     if uso >= 0.7:
         alertas.append(("warning", f"Limite do cartão em {uso:.0%}", f"{cartao['nome']}: fatura em aberto de {moeda(fatura)}."))
@@ -152,7 +160,7 @@ with st.container(key="home-kpis"):
     c1, c2, c3 = st.columns(3)
     c1.metric("Saldo disponível", moeda(saldo_disponivel), delta=mes_atual)
     c2.metric("Despesas fixas a vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} despesa(s) fixa(s)")
-    faturas_abertas = [fatura_cartao(cartao["id"], mes_atual) for cartao in cartoes]
+    faturas_abertas = [fatura_aberta_do_mes(cartao["id"]) for cartao in cartoes]
     fatura_total = sum(faturas_abertas)
     c3.metric("Faturas em aberto", moeda(fatura_total), f"{sum(valor > 0 for valor in faturas_abertas)} cartão(ões)")
 
