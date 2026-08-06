@@ -39,9 +39,11 @@ if not st.session_state.logado:
 
 hoje = date.today()
 mes_atual = hoje.strftime("%Y-%m")
-receitas = [item for item in listar_receitas() if str(item["data"]).startswith(mes_atual)]
+receitas_cadastradas = listar_receitas()
+receitas = [item for item in receitas_cadastradas if str(item["data"]).startswith(mes_atual)]
 despesas = [item for item in listar_despesas() if str(item["data"]).startswith(mes_atual)]
 total_receitas = sum(item["valor"] for item in receitas)
+saldo_disponivel = total_receitas
 total_despesas = sum(item["valor"] for item in despesas)
 saldo = total_receitas - total_despesas
 vencimentos = proximos_vencimentos()
@@ -144,7 +146,7 @@ st.markdown(f"<div class='home-hero'><div class='home-hero__top'><div><span clas
 
 with st.container(key="home-kpis"):
     c1, c2, c3 = st.columns(3)
-    c1.metric("Saldo do mês", moeda(saldo), delta=f"{mes_atual}")
+    c1.metric("Saldo disponível", moeda(saldo_disponivel), delta=mes_atual)
     c2.metric("A vencer", moeda(sum(item["valor"] for item in vencimentos)), f"{len(vencimentos)} conta(s)")
     fatura_total = sum(fatura_cartao(cartao["id"]) for cartao in cartoes)
     c3.metric("Faturas em aberto", moeda(fatura_total), f"{len(cartoes)} cartão(ões)")
