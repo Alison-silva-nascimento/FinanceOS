@@ -40,6 +40,14 @@ banco e os backups em um volume persistente. O `compose.yaml` incluído usa o
 volume `financeos_data`. O administrador e o tempo de sessão são configuráveis
 por `FINANCEOS_ADMIN_USER` e `FINANCEOS_SESSION_TIMEOUT_MINUTES`.
 
+## Produção com Supabase
+
+Em produção, defina `DATABASE_URL` nos Secrets do Streamlit com a URI do
+**Session pooler** do Supabase. O FinanceOS então usa PostgreSQL; sem essa
+variável, ele mantém SQLite para a base de teste local. A URI nunca deve ser
+versionada. Para migrar o banco local existente com segurança, siga
+[o guia de migração](docs/MIGRACAO_SUPABASE.md).
+
 ## Segurança e dados
 
 Os dados são associados ao usuário autenticado. A conta configurada em `FINANCEOS_ADMIN_USER` é a única administradora; todas as novas contas são usuários comuns. A senha é armazenada como hash PBKDF2, nunca em texto puro. O FinanceOS cria um backup consistente por dia, encerra sessões inativas e bloqueia a conta por 10 minutos após cinco falhas consecutivas. PDFs são validados localmente (até 10 MB e 50 páginas), e imagens de perfil são verificadas antes de serem salvas. Para publicação na internet, use o proxy HTTPS e siga o [guia de produção](docs/DEPLOY_PRODUCAO.md).
