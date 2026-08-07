@@ -6,8 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-BOOTSTRAP_DIR = Path(tempfile.gettempdir()) / "financeos-test-bootstrap"
-BOOTSTRAP_DIR.mkdir(exist_ok=True)
+# Diretório exclusivo por execução: o banco aplica ACLs no Windows e um
+# diretório reaproveitado pode ficar indisponível para o processo seguinte.
+BOOTSTRAP_DIR = Path(tempfile.mkdtemp(prefix="financeos-test-"))
 os.environ["FINANCEOS_DB_FILE"] = str(BOOTSTRAP_DIR / "bootstrap.db")
 os.environ["FINANCEOS_BACKUP_DIR"] = str(BOOTSTRAP_DIR / "backups")
 

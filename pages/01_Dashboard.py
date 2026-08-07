@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from html import escape
 
 from datetime import datetime
 
@@ -60,7 +61,17 @@ st.markdown("""
 .big-money { margin-top:.35rem; font-size:clamp(2.2rem,4vw,3.2rem); font-weight:800; letter-spacing:-.055em; }
 .dashboard-section { display:flex; align-items:center; gap:.65rem; margin-top:1.9rem; margin-bottom:.8rem; }
 .dashboard-section h2 { margin:0 !important; font-size:1.32rem !important; }
-@media (max-width: 700px) { .dashboard-hero { padding:1.45rem; border-radius:17px; } .dashboard-hero h1 { font-size:1.9rem !important; } .saldo-card { display:block; padding:1.45rem; border-radius:17px; } .saldo-card__summary { margin-top:1.25rem; gap:.85rem; } .saldo-card__summary strong { font-size:.9rem; } }
+.vencimento-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.55rem 0; padding:.9rem 1rem; border:1px solid rgba(148,163,184,.22); border-radius:14px; background:linear-gradient(135deg,rgba(30,41,59,.78),rgba(15,23,42,.72)); }
+.vencimento-card__date { display:inline-flex; align-items:center; margin-right:.55rem; padding:.2rem .45rem; border-radius:7px; background:rgba(37,99,235,.18); color:#bfdbfe; font-size:.78rem; font-weight:750; }
+.vencimento-card__title { color:#f8fafc; font-weight:750; }
+.vencimento-card__meta { margin-top:.22rem; color:#94a3b8; font-size:.79rem; }
+.vencimento-card__value { color:#fecaca; font-size:1.15rem; font-weight:800; white-space:nowrap; }
+@media (max-width: 700px) {
+  .dashboard-hero { padding:1.45rem; border-radius:17px; } .dashboard-hero h1 { font-size:1.9rem !important; }
+  .saldo-card { display:block; padding:1.45rem; border-radius:17px; } .saldo-card__summary { margin-top:1.25rem; gap:.85rem; } .saldo-card__summary strong { font-size:.9rem; }
+  .vencimento-card { padding:.8rem .85rem; } .vencimento-card__value { font-size:1rem; }
+  [data-testid="stExpander"] { border-radius:13px !important; } [data-testid="stExpander"] summary { font-size:.92rem; }
+}
 
 </style>
 
@@ -70,8 +81,8 @@ st.markdown("""
 # DADOS
 # ======================================================
 
-receitas = listar_receitas()
-despesas = listar_despesas()
+receitas_todas = listar_receitas()
+despesas_todas = listar_despesas()
 
 mes_atual = datetime.now().strftime("%Y-%m")
 with st.container(border=True):
@@ -86,8 +97,8 @@ with st.container(border=True):
             key="mes_dashboard",
             help="Formato AAAA-MM. Exemplo: 2026-07",
         )
-receitas = [r for r in receitas if str(r["data"]).startswith(mes_referencia)]
-despesas = [d for d in despesas if str(d["data"]).startswith(mes_referencia)]
+receitas = [r for r in receitas_todas if str(r["data"]).startswith(mes_referencia)]
+despesas = [d for d in despesas_todas if str(d["data"]).startswith(mes_referencia)]
 bancos = listar_bancos()
 metas = listar_metas()
 patrimonio = listar_patrimonio()
@@ -238,6 +249,13 @@ with c4:
         "#7C3AED"
 
     )
+
+if not receitas and not despesas:
+    with st.container(border=True):
+        st.info(f"Ainda não há movimentações em {mes_referencia}. Comece registrando uma receita ou uma despesa para formar seu painel.")
+        acao_receita, acao_despesa = st.columns(2)
+        acao_receita.page_link("pages/02_Receitas.py", label="Adicionar receita", icon="💰", use_container_width=True)
+        acao_despesa.page_link("pages/03_Despesas.py", label="Adicionar despesa", icon="💸", use_container_width=True)
 
 if holerite_mes:
     descontos_folha = [
@@ -505,6 +523,29 @@ with col2:
 
     )
 
+with st.expander("📊 Comparativo dos últimos 3 meses", expanded=False):
+    try:
+        ano_referencia, numero_mes_referencia = map(int, mes_referencia.split("-"))
+        competencias_comparativo = []
+        for deslocamento in range(2, -1, -1):
+            indice = ano_referencia * 12 + numero_mes_referencia - 1 - deslocamento
+            ano, mes = divmod(indice, 12)
+            competencias_comparativo.append(f"{ano:04d}-{mes + 1:02d}")
+        linhas_comparativo = []
+        for competencia in competencias_comparativo:
+            linhas_comparativo.extend([
+                {"Competência": competencia, "Tipo": "Receitas", "Valor": sum(item["valor"] for item in receitas_todas if str(item["data"]).startswith(competencia))},
+                {"Competência": competencia, "Tipo": "Despesas", "Valor": sum(item["valor"] for item in despesas_todas if str(item["data"]).startswith(competencia))},
+            ])
+        fig_comparativo = px.bar(
+            pd.DataFrame(linhas_comparativo), x="Competência", y="Valor", color="Tipo", barmode="group",
+            color_discrete_map={"Receitas": "#22c55e", "Despesas": "#f87171"}, text_auto=".2s",
+        )
+        fig_comparativo.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#e2e8f0", margin=dict(l=10, r=10, t=15, b=10), height=310)
+        st.plotly_chart(fig_comparativo, use_container_width=True)
+    except (ValueError, TypeError):
+        st.info("Informe a competência no formato AAAA-MM para ver o comparativo mensal.")
+
 st.divider()
 
 # ======================================================
@@ -523,42 +564,19 @@ with c1:
         st.info("Cadastre contas em Recorrências para receber alertas de vencimento.")
 
     for d in vencimentos:
-
-        with st.container(border=True):
-
-            x,y=st.columns([4,1])
-
-            with x:
-
-                st.markdown(
-
-                    f"### 💳 {d['descricao']}"
-
-                )
-
-                st.caption(
-
-                    f"{d['data'].strftime('%d/%m/%Y')} · {d['categoria']}"
-
-                )
-
-            with y:
-
-                st.markdown(
-
-                    f"""
-
-<h3 style="text-align:right;color:#DC2626;">
-
-{moeda(d["valor"])}
-
-</h3>
-
-""",
-
-unsafe_allow_html=True
-
-                )
+        st.markdown(
+            f"""
+            <article class="vencimento-card">
+              <div>
+                <span class="vencimento-card__date">{d['data'].strftime('%d/%m')}</span>
+                <span class="vencimento-card__title">{escape(str(d['descricao']))}</span>
+                <div class="vencimento-card__meta">{escape(str(d['categoria']))} · vence em {d['data'].strftime('%d/%m/%Y')}</div>
+              </div>
+              <div class="vencimento-card__value">{moeda(d['valor'])}</div>
+            </article>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # ======================================================
 # METAS
