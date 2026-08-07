@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .env
 .streamlit/secrets.toml
+SENHA DB SQLPOSTGRE SUPABASE.txt
 database/*.db
 backups/
 .pytest_cache/

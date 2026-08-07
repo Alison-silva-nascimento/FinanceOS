@@ -15,11 +15,28 @@ from datetime import date, datetime
 from pathlib import Path
 
 from config import ADMIN_USER
+from database.postgres import conectar_postgres, criar_esquema_postgres
 
 # Permite bancos isolados em testes e volumes persistentes em instalações próprias.
 # Na ausência das variáveis, mantém a estrutura local atual do FinanceOS.
 DB_FILE = Path(os.environ.get("FINANCEOS_DB_FILE", Path(__file__).parent / "finance.db"))
 BACKUP_DIR = Path(os.environ.get("FINANCEOS_BACKUP_DIR", DB_FILE.parent.parent / "backups"))
+
+
+def _database_url():
+    """Lê a URL somente do ambiente ou dos Secrets; nunca do repositório."""
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if url:
+        return url
+    try:
+        import streamlit as st
+        return str(st.secrets.get("DATABASE_URL", "")).strip()
+    except Exception:
+        return ""
+
+
+def usar_postgres():
+    return bool(_database_url())
 
 TABELAS_FINANCEIRAS = (
     "receitas", "despesas", "cartoes", "bancos", "orcamentos", "metas",
@@ -29,6 +46,8 @@ TABELAS_FINANCEIRAS = (
 
 
 def conectar():
+    if usar_postgres():
+        return conectar_postgres(_database_url())
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -37,6 +56,8 @@ def conectar():
 
 def criar_backup_diario():
     """Cria uma cópia consistente do SQLite por dia, sem sobrescrever backups."""
+    if usar_postgres():
+        return None
     if not DB_FILE.exists():
         return None
     BACKUP_DIR.mkdir(exist_ok=True)
@@ -54,6 +75,8 @@ def criar_backup_diario():
 
 def criar_backup_agora():
     """Cria um backup SQLite consistente com data e hora."""
+    if usar_postgres():
+        raise RuntimeError("Backups de produção são realizados pelo Supabase. Use o painel do projeto para exportar dados.")
     BACKUP_DIR.mkdir(exist_ok=True)
     destino = BACKUP_DIR / f"finance-{datetime.now():%Y-%m-%d_%H%M%S}.db"
     origem = sqlite3.connect(DB_FILE); copia = sqlite3.connect(destino)
@@ -64,6 +87,8 @@ def criar_backup_agora():
 
 def restaurar_backup(conteudo):
     """Valida integralmente um SQLite antes de substituir o banco atual."""
+    if usar_postgres():
+        raise RuntimeError("A restauração de backups SQLite só está disponível na base de teste.")
     if not conteudo or len(conteudo) > 200 * 1024 * 1024: raise ValueError("Backup vazio ou maior que 200 MB.")
     descritor, caminho_temporario = tempfile.mkstemp(prefix="financeos-restore-", suffix=".db")
     os.close(descritor)
@@ -90,7 +115,7 @@ def proteger_dados_windows():
     Não substitui criptografia de ponta a ponta, mas impede que outros perfis locais
     acessem os arquivos pelo Explorador sem permissão administrativa.
     """
-    if os.name != "nt" or not DB_FILE.exists():
+    if usar_postgres() or os.name != "nt" or not DB_FILE.exists():
         return False
     BACKUP_DIR.mkdir(exist_ok=True)
     marcador = BACKUP_DIR / ".acl_protegida"
@@ -182,6 +207,9 @@ def _usuario_atual():
 
 
 def criar_banco():
+    if usar_postgres():
+        criar_esquema_postgres(_database_url(), ADMIN_USER)
+        return
     criar_backup_diario()
     conn = conectar()
     cursor = conn.cursor()
@@ -721,11 +749,18 @@ def sugerir_conciliacoes(registro_id, tolerancia_dias=3):
     item = conn.execute("SELECT * FROM conciliacoes WHERE id=? AND usuario_id=?", (registro_id,usuario_id)).fetchone()
     if not item: conn.close(); return []
     tabela = "receitas" if item["valor"] >= 0 else "despesas"; valor = abs(float(item["valor"]))
-    dados = conn.execute(f"""SELECT id,data,descricao,valor,? AS vinculo_tipo,
-        abs(julianday(data)-julianday(?)) AS distancia
-        FROM {tabela} WHERE usuario_id=? AND abs(valor-?)<0.02
-        AND abs(julianday(data)-julianday(?))<=? ORDER BY distancia,id DESC LIMIT 5""",
-        (tabela[:-1],item["data"],usuario_id,valor,item["data"],tolerancia_dias)).fetchall()
+    if usar_postgres():
+        dados = conn.execute(f"""SELECT id,data,descricao,valor,? AS vinculo_tipo,
+            abs(CAST(data AS date)-CAST(? AS date)) AS distancia
+            FROM {tabela} WHERE usuario_id=? AND abs(valor-?)<0.02
+            AND abs(CAST(data AS date)-CAST(? AS date))<=? ORDER BY distancia,id DESC LIMIT 5""",
+            (tabela[:-1],item["data"],usuario_id,valor,item["data"],tolerancia_dias)).fetchall()
+    else:
+        dados = conn.execute(f"""SELECT id,data,descricao,valor,? AS vinculo_tipo,
+            abs(julianday(data)-julianday(?)) AS distancia
+            FROM {tabela} WHERE usuario_id=? AND abs(valor-?)<0.02
+            AND abs(julianday(data)-julianday(?))<=? ORDER BY distancia,id DESC LIMIT 5""",
+            (tabela[:-1],item["data"],usuario_id,valor,item["data"],tolerancia_dias)).fetchall()
     conn.close(); return dados
 
 
