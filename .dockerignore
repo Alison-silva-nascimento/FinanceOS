@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.py[cod]
+.env
+.streamlit/secrets.toml
+database/*.db
+backups
+work
+.pytest_cache
+tests
+docs
+*.log

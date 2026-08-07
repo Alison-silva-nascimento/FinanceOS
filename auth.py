@@ -7,13 +7,14 @@ import secrets
 from datetime import datetime, timedelta
 from io import BytesIO
 
+from config import ADMIN_USER, SESSION_TIMEOUT_MINUTES
 from database.db import conectar, registrar_evento
 
 
 ITERACOES_PBKDF2 = 600_000
 MAX_FOTO_BYTES = 2 * 1024 * 1024
 MAX_PIXELS_FOTO = 16_000_000
-USUARIO_ADMIN = "alison.nascimento"
+USUARIO_ADMIN = ADMIN_USER
 
 
 def validar_sessao_atual():
@@ -23,6 +24,11 @@ def validar_sessao_atual():
 
         if not st.session_state.get("logado"):
             return False
+        agora = datetime.now()
+        ultima_atividade = st.session_state.get("ultima_atividade")
+        if ultima_atividade and agora - ultima_atividade > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+            return False
+        st.session_state.ultima_atividade = agora
         perfil = obter_perfil(st.session_state.get("usuario"))
         if not perfil:
             return False
@@ -211,7 +217,7 @@ def resetar_senha_admin(usuario_destino, nova_senha):
     )
     conn.commit()
     conn.close()
-    registrar_evento(destino["id"], "Senha redefinida pelo administrador", "Redefinição realizada por alison.nascimento")
+    registrar_evento(destino["id"], "Senha redefinida pelo administrador", f"Redefinição realizada por {USUARIO_ADMIN}")
     administrador = obter_perfil(USUARIO_ADMIN)
     if administrador:
         registrar_evento(administrador["id"], "Senha de usuário redefinida", f"Conta afetada: @{usuario_destino.strip()}")
@@ -289,4 +295,3 @@ def exigir_login():
     if not st.session_state.get("logado", False) or not validar_sessao_atual():
         st.session_state.clear()
         st.switch_page("app.py")
-

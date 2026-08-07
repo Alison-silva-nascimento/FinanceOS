@@ -6,3 +6,9 @@ __pycache__/
 database/*.db
 backups/
 .pytest_cache/
+work/
+*.log
+*.sqlite
+*.sqlite3
+docker-compose.override.yml
+compose.override.yaml

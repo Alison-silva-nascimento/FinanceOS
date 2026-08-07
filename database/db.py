@@ -10,8 +10,11 @@ import calendar
 import os
 import sqlite3
 import subprocess
+import tempfile
 from datetime import date, datetime
 from pathlib import Path
+
+from config import ADMIN_USER
 
 # Permite bancos isolados em testes e volumes persistentes em instalações próprias.
 # Na ausência das variáveis, mantém a estrutura local atual do FinanceOS.
@@ -21,6 +24,7 @@ BACKUP_DIR = Path(os.environ.get("FINANCEOS_BACKUP_DIR", DB_FILE.parent.parent /
 TABELAS_FINANCEIRAS = (
     "receitas", "despesas", "cartoes", "bancos", "orcamentos", "metas",
     "patrimonio", "recorrencias", "compras_cartao", "transferencias", "holerites", "conciliacoes", "faturas_pagas", "faturas_resumo",
+    "importacoes", "regras_categoria", "fechamentos_mensais",
 )
 
 
@@ -46,6 +50,38 @@ def criar_backup_diario():
     finally:
         copia.close(); origem.close()
     return destino
+
+
+def criar_backup_agora():
+    """Cria um backup SQLite consistente com data e hora."""
+    BACKUP_DIR.mkdir(exist_ok=True)
+    destino = BACKUP_DIR / f"finance-{datetime.now():%Y-%m-%d_%H%M%S}.db"
+    origem = sqlite3.connect(DB_FILE); copia = sqlite3.connect(destino)
+    try: origem.backup(copia)
+    finally: copia.close(); origem.close()
+    return destino
+
+
+def restaurar_backup(conteudo):
+    """Valida integralmente um SQLite antes de substituir o banco atual."""
+    if not conteudo or len(conteudo) > 200 * 1024 * 1024: raise ValueError("Backup vazio ou maior que 200 MB.")
+    descritor, caminho_temporario = tempfile.mkstemp(prefix="financeos-restore-", suffix=".db")
+    os.close(descritor)
+    temporario = Path(caminho_temporario)
+    try:
+        temporario.write_bytes(conteudo)
+        conn = sqlite3.connect(temporario)
+        integridade = conn.execute("PRAGMA integrity_check").fetchone()[0]
+        tabelas = {x[0] for x in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        conn.close()
+        if integridade != "ok" or not {"usuarios","receitas","despesas","cartoes"}.issubset(tabelas):
+            raise ValueError("O arquivo não é um backup íntegro do FinanceOS.")
+        seguranca = criar_backup_agora()
+        temporario.replace(DB_FILE)
+        criar_banco()
+        return seguranca
+    finally:
+        if temporario.exists(): temporario.unlink()
 
 
 def proteger_dados_windows():
@@ -93,7 +129,7 @@ def _exigir_admin():
         usuario = str(st.session_state.get("usuario", "")).strip().lower()
     except Exception:
         usuario = ""
-    if usuario != "alison.nascimento":
+    if usuario != ADMIN_USER:
         raise PermissionError("Acesso administrativo não autorizado.")
 
 
@@ -172,8 +208,8 @@ def criar_banco():
     if "sessao_versao" not in colunas_usuarios:
         cursor.execute("ALTER TABLE usuarios ADD COLUMN sessao_versao INTEGER NOT NULL DEFAULT 1")
     # Regra de administração do FinanceOS: a conta do proprietário é a única admin.
-    cursor.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != 'alison.nascimento' AND perfil='admin'")
-    cursor.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = 'alison.nascimento'")
+    cursor.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (ADMIN_USER,))
+    cursor.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (ADMIN_USER,))
     cursor.execute("""CREATE TABLE IF NOT EXISTS eventos_seguranca(
         id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER, acao TEXT NOT NULL,
         detalhes TEXT, criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
@@ -234,6 +270,19 @@ def criar_banco():
         total_a_pagar REAL NOT NULL, origem TEXT, usuario_id INTEGER,
         atualizado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(cartao_id, competencia, usuario_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS importacoes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL, origem TEXT NOT NULL,
+        arquivo_nome TEXT, competencia TEXT, cartao_id INTEGER, quantidade INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'concluida', criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        desfeito_em TEXT, usuario_id INTEGER)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS regras_categoria(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, termo TEXT NOT NULL, categoria TEXT NOT NULL,
+        usuario_id INTEGER, UNIQUE(termo, usuario_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS fechamentos_mensais(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, competencia TEXT NOT NULL, receitas REAL NOT NULL,
+        despesas REAL NOT NULL, faturas REAL NOT NULL, saldo REAL NOT NULL, observacoes TEXT,
+        fechado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, usuario_id INTEGER,
+        UNIQUE(competencia, usuario_id))""")
 
     colunas_holerites = {linha["name"] for linha in cursor.execute("PRAGMA table_info(holerites)")}
     for coluna in ("adiantamento_salarial", "pat", "unimed", "fgts"):
@@ -252,6 +301,15 @@ def criar_banco():
     colunas_compras = {linha["name"] for linha in cursor.execute("PRAGMA table_info(compras_cartao)")}
     if "competencia" not in colunas_compras:
         cursor.execute("ALTER TABLE compras_cartao ADD COLUMN competencia TEXT")
+    if "importacao_id" not in colunas_compras:
+        cursor.execute("ALTER TABLE compras_cartao ADD COLUMN importacao_id INTEGER")
+    colunas_conciliacoes = {linha["name"] for linha in cursor.execute("PRAGMA table_info(conciliacoes)")}
+    if "importacao_id" not in colunas_conciliacoes:
+        cursor.execute("ALTER TABLE conciliacoes ADD COLUMN importacao_id INTEGER")
+    if "vinculo_tipo" not in colunas_conciliacoes:
+        cursor.execute("ALTER TABLE conciliacoes ADD COLUMN vinculo_tipo TEXT")
+    if "vinculo_id" not in colunas_conciliacoes:
+        cursor.execute("ALTER TABLE conciliacoes ADD COLUMN vinculo_id INTEGER")
     cursor.execute("UPDATE compras_cartao SET competencia=substr(data, 1, 7) WHERE competencia IS NULL OR competencia='' ")
     conn.commit()
     conn.close()
@@ -345,11 +403,11 @@ def excluir_cartao(registro_id):
     conn.commit(); conn.close()
 
 
-def adicionar_compra_cartao(cartao_id, data, descricao, categoria, valor, parcelas, parcela_atual=1, competencia=None):
+def adicionar_compra_cartao(cartao_id, data, descricao, categoria, valor, parcelas, parcela_atual=1, competencia=None, importacao_id=None):
     usuario_id = _usuario_atual()
     if not _obter("cartoes", cartao_id): raise ValueError("Cartão inválido.")
     competencia = competencia or str(data)[:7]
-    conn = conectar(); conn.execute("INSERT INTO compras_cartao(cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id) VALUES(?,?,?,?,?,?,?,?,?)", (cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id)); conn.commit(); conn.close()
+    conn = conectar(); conn.execute("INSERT INTO compras_cartao(cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id,importacao_id) VALUES(?,?,?,?,?,?,?,?,?,?)", (cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id,importacao_id)); conn.commit(); conn.close()
 
 
 def listar_compras_cartao(cartao_id):
@@ -605,15 +663,134 @@ def listar_holerites():
 
 
 # Conciliação e projeção mensal
-def importar_extrato(lancamentos, origem="CSV"):
+def iniciar_importacao(tipo, origem, arquivo_nome=None, competencia=None, cartao_id=None):
     usuario_id = _usuario_atual(); conn = conectar()
+    cursor = conn.execute("INSERT INTO importacoes(tipo,origem,arquivo_nome,competencia,cartao_id,usuario_id) VALUES(?,?,?,?,?,?)", (tipo,origem,arquivo_nome,competencia,cartao_id,usuario_id))
+    conn.commit(); importacao_id = cursor.lastrowid; conn.close(); return importacao_id
+
+
+def finalizar_importacao(importacao_id, quantidade, status="concluida"):
+    usuario_id = _usuario_atual(); conn = conectar()
+    conn.execute("UPDATE importacoes SET quantidade=?, status=? WHERE id=? AND usuario_id=?", (quantidade,status,importacao_id,usuario_id))
+    conn.commit(); conn.close()
+
+
+def listar_importacoes(limite=100):
+    usuario_id = _usuario_atual(); conn = conectar()
+    dados = conn.execute("""SELECT i.*, c.nome AS cartao_nome FROM importacoes i
+        LEFT JOIN cartoes c ON c.id=i.cartao_id AND c.usuario_id=i.usuario_id
+        WHERE i.usuario_id=? ORDER BY i.criado_em DESC, i.id DESC LIMIT ?""", (usuario_id,limite)).fetchall()
+    conn.close(); return dados
+
+
+def desfazer_importacao(importacao_id):
+    """Desfaz somente importações ativas; compras de faturas pagas são preservadas."""
+    usuario_id = _usuario_atual(); conn = conectar()
+    item = conn.execute("SELECT * FROM importacoes WHERE id=? AND usuario_id=?", (importacao_id,usuario_id)).fetchone()
+    if not item or item["status"] == "desfeita": conn.close(); raise ValueError("Importação não encontrada ou já desfeita.")
+    if item["tipo"] == "fatura":
+        pagas = conn.execute("SELECT COUNT(*) total FROM compras_cartao WHERE importacao_id=? AND usuario_id=? AND paga=1", (importacao_id,usuario_id)).fetchone()["total"]
+        if pagas: conn.close(); raise ValueError("Não é possível desfazer uma fatura já paga.")
+        removidos = conn.execute("DELETE FROM compras_cartao WHERE importacao_id=? AND usuario_id=?", (importacao_id,usuario_id)).rowcount
+        if item["cartao_id"] and item["competencia"]:
+            conn.execute("DELETE FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (item["cartao_id"],item["competencia"],usuario_id))
+    else:
+        removidos = conn.execute("DELETE FROM conciliacoes WHERE importacao_id=? AND usuario_id=?", (importacao_id,usuario_id)).rowcount
+    conn.execute("UPDATE importacoes SET status='desfeita', desfeito_em=CURRENT_TIMESTAMP WHERE id=? AND usuario_id=?", (importacao_id,usuario_id))
+    conn.commit(); conn.close(); return removidos
+
+
+def importar_extrato(lancamentos, origem="CSV", arquivo_nome=None):
+    usuario_id = _usuario_atual(); conn = conectar()
+    cursor = conn.execute("INSERT INTO importacoes(tipo,origem,arquivo_nome,usuario_id) VALUES('extrato',?,?,?)", (origem,arquivo_nome or origem,usuario_id))
+    importacao_id = cursor.lastrowid; incluidos = 0
     for item in lancamentos:
-        conn.execute("INSERT INTO conciliacoes(data,descricao,valor,tipo,origem,usuario_id) VALUES(?,?,?,?,?,?)", (item["data"],item["descricao"],item["valor"],"Receita" if item["valor"] >= 0 else "Despesa",origem,usuario_id))
-    conn.commit(); conn.close(); return len(lancamentos)
+        existe = conn.execute("SELECT id FROM conciliacoes WHERE data=? AND descricao=? AND abs(valor-?)<0.005 AND usuario_id=?", (item["data"],item["descricao"],item["valor"],usuario_id)).fetchone()
+        if existe: continue
+        conn.execute("INSERT INTO conciliacoes(data,descricao,valor,tipo,origem,usuario_id,importacao_id) VALUES(?,?,?,?,?,?,?)", (item["data"],item["descricao"],item["valor"],"Receita" if item["valor"] >= 0 else "Despesa",origem,usuario_id,importacao_id)); incluidos += 1
+    conn.execute("UPDATE importacoes SET quantidade=?, status=? WHERE id=?", (incluidos,"concluida" if incluidos else "sem_novos",importacao_id))
+    conn.commit(); conn.close(); return incluidos
 
 def listar_conciliacoes(): return _listar("conciliacoes", "data DESC, id DESC")
-def marcar_conciliado(registro_id):
-    usuario_id = _usuario_atual(); conn = conectar(); conn.execute("UPDATE conciliacoes SET conciliado=1 WHERE id=? AND usuario_id=?", (registro_id,usuario_id)); conn.commit(); conn.close()
+def marcar_conciliado(registro_id, vinculo_tipo=None, vinculo_id=None):
+    usuario_id = _usuario_atual(); conn = conectar(); conn.execute("UPDATE conciliacoes SET conciliado=1,vinculo_tipo=?,vinculo_id=? WHERE id=? AND usuario_id=?", (vinculo_tipo,vinculo_id,registro_id,usuario_id)); conn.commit(); conn.close()
+
+
+def sugerir_conciliacoes(registro_id, tolerancia_dias=3):
+    usuario_id = _usuario_atual(); conn = conectar()
+    item = conn.execute("SELECT * FROM conciliacoes WHERE id=? AND usuario_id=?", (registro_id,usuario_id)).fetchone()
+    if not item: conn.close(); return []
+    tabela = "receitas" if item["valor"] >= 0 else "despesas"; valor = abs(float(item["valor"]))
+    dados = conn.execute(f"""SELECT id,data,descricao,valor,? AS vinculo_tipo,
+        abs(julianday(data)-julianday(?)) AS distancia
+        FROM {tabela} WHERE usuario_id=? AND abs(valor-?)<0.02
+        AND abs(julianday(data)-julianday(?))<=? ORDER BY distancia,id DESC LIMIT 5""",
+        (tabela[:-1],item["data"],usuario_id,valor,item["data"],tolerancia_dias)).fetchall()
+    conn.close(); return dados
+
+
+def salvar_regra_categoria(termo, categoria):
+    usuario_id = _usuario_atual(); termo = termo.strip().lower(); conn = conectar()
+    conn.execute("INSERT INTO regras_categoria(termo,categoria,usuario_id) VALUES(?,?,?) ON CONFLICT(termo,usuario_id) DO UPDATE SET categoria=excluded.categoria", (termo,categoria,usuario_id))
+    conn.commit(); conn.close()
+
+
+def listar_regras_categoria(): return _listar("regras_categoria", "termo")
+
+
+def excluir_regra_categoria(registro_id): _excluir("regras_categoria", registro_id)
+
+
+def categorizar_por_regras(descricao, padrao="Outros"):
+    texto = str(descricao).lower()
+    for regra in listar_regras_categoria():
+        if regra["termo"] in texto: return regra["categoria"]
+    return padrao
+
+
+def projecao_parcelas(meses=12):
+    usuario_id = _usuario_atual(); conn = conectar()
+    compras = conn.execute("SELECT c.*, ca.nome cartao_nome FROM compras_cartao c JOIN cartoes ca ON ca.id=c.cartao_id WHERE c.usuario_id=? AND c.paga=0 AND c.parcelas>1", (usuario_id,)).fetchall(); conn.close()
+    resultado = {}
+    for compra in compras:
+        ano, mes = map(int, compra["competencia"].split("-")); restante = int(compra["parcelas"])-int(compra["parcela_atual"])+1
+        for deslocamento in range(min(restante, meses)):
+            indice = ano*12+(mes-1)+deslocamento; competencia = f"{indice//12}-{indice%12+1:02d}"
+            resultado.setdefault(competencia, 0.0); resultado[competencia] += float(compra["valor"])/int(compra["parcelas"])
+    return [{"competencia": chave,"valor": valor} for chave,valor in sorted(resultado.items())]
+
+
+def resumo_fechamento(competencia):
+    usuario_id = _usuario_atual(); conn = conectar()
+    receitas = conn.execute("SELECT COALESCE(SUM(valor),0) total FROM receitas WHERE usuario_id=? AND data LIKE ?", (usuario_id,f"{competencia}%")).fetchone()["total"]
+    despesas = conn.execute("SELECT COALESCE(SUM(valor),0) total FROM despesas WHERE usuario_id=? AND data LIKE ?", (usuario_id,f"{competencia}%")).fetchone()["total"]
+    faturas = conn.execute("SELECT COALESCE(SUM(valor/parcelas),0) total FROM compras_cartao WHERE usuario_id=? AND competencia=?", (usuario_id,competencia)).fetchone()["total"]
+    pendencias = conn.execute("SELECT COUNT(*) total FROM conciliacoes WHERE usuario_id=? AND data LIKE ? AND conciliado=0", (usuario_id,f"{competencia}%")).fetchone()["total"]
+    conn.close(); return {"receitas":float(receitas),"despesas":float(despesas),"faturas":float(faturas),"saldo":float(receitas)-float(despesas)-float(faturas),"pendencias":pendencias}
+
+
+def fechar_mes(competencia, observacoes=""):
+    usuario_id = _usuario_atual(); resumo = resumo_fechamento(competencia)
+    if resumo["pendencias"]: raise ValueError("Concilie todas as movimentações do mês antes do fechamento.")
+    conn = conectar(); conn.execute("""INSERT INTO fechamentos_mensais(competencia,receitas,despesas,faturas,saldo,observacoes,usuario_id)
+        VALUES(?,?,?,?,?,?,?) ON CONFLICT(competencia,usuario_id) DO UPDATE SET receitas=excluded.receitas,despesas=excluded.despesas,faturas=excluded.faturas,saldo=excluded.saldo,observacoes=excluded.observacoes,fechado_em=CURRENT_TIMESTAMP""",
+        (competencia,resumo["receitas"],resumo["despesas"],resumo["faturas"],resumo["saldo"],observacoes,usuario_id)); conn.commit(); conn.close(); return resumo
+
+
+def listar_fechamentos(): return _listar("fechamentos_mensais", "competencia DESC")
+
+
+def alertas_financeiros(competencia=None):
+    competencia = competencia or date.today().strftime("%Y-%m"); alertas = []
+    for cartao in listar_cartoes():
+        uso = fatura_cartao(cartao["id"], competencia); limite = float(cartao["limite"])
+        if limite and uso/limite >= .8: alertas.append({"nivel":"Atenção","mensagem":f"{cartao['nome']} está com {uso/limite:.0%} do limite utilizado."})
+    resumo = resumo_fechamento(competencia)
+    if resumo["pendencias"]: alertas.append({"nivel":"Pendente","mensagem":f"Há {resumo['pendencias']} movimentação(ões) bancária(s) sem conciliação."})
+    for item in listar_recorrencias():
+        if item["tipo"] == "Despesa" and float(item["valor"]) > 0: continue
+    if resumo["saldo"] < 0: alertas.append({"nivel":"Crítico","mensagem":"O saldo mensal projetado está negativo."})
+    return alertas
 
 def projecao_mes(mes):
     receitas = sum(item["valor"] for item in listar_receitas() if str(item["data"]).startswith(mes))
