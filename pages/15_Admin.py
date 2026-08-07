@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from auth import exigir_admin, resetar_senha_admin
+from auth import USUARIO_ADMIN, exigir_admin, resetar_senha_admin
 from components.theme import aplicar_tema
 from database.db import listar_eventos_admin, listar_usuarios_admin
 
@@ -67,7 +67,7 @@ with aba_logs:
 
 with aba_senhas:
     st.subheader("Redefinir senha de usuário")
-    destinatarios = [item for item in usuarios if item["usuario"].lower() != "alison.nascimento"]
+    destinatarios = [item for item in usuarios if item["usuario"].lower() != USUARIO_ADMIN]
     if not destinatarios:
         st.info("Ainda não há outra conta cadastrada.")
     else:
@@ -85,4 +85,3 @@ with aba_senhas:
                 (st.success if sucesso else st.error)(mensagem)
                 if sucesso:
                     st.rerun()
-

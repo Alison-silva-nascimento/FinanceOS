@@ -1,13 +1,19 @@
 """Tema visual compartilhado por todas as páginas do FinanceOS."""
 
 import streamlit as st
+import streamlit.components.v1 as components
+
+from config import ADMIN_USER, SESSION_TIMEOUT_MINUTES
 
 
 def aplicar_tema():
     st.markdown(
         """
         <style>
-        :root { --blue:#3b82f6; --violet:#8b5cf6; --surface:rgba(19,28,48,.82); --surface-strong:#121c31; --border:rgba(148,163,184,.18); --border-strong:rgba(148,163,184,.30); --text:#e6edf7; --muted:#94a3b8; --space-1:.5rem; --space-2:.75rem; --space-3:1rem; --space-4:1.5rem; --space-5:2rem; }
+        :root { color-scheme:dark; --blue:#3b82f6; --violet:#8b5cf6; --surface:rgba(19,28,48,.82); --surface-strong:#121c31; --border:rgba(148,163,184,.18); --border-strong:rgba(148,163,184,.30); --text:#e6edf7; --muted:#94a3b8; --space-1:.5rem; --space-2:.75rem; --space-3:1rem; --space-4:1.5rem; --space-5:2rem; }
+        html { min-height:100%; background:#0b1120; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+        body { min-height:100vh; min-height:100dvh; overscroll-behavior-y:none; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        button,a,input,textarea,select,[role="button"] { touch-action:manipulation; }
         .stApp { background:radial-gradient(circle at 6% 10%,rgba(37,99,235,.12),transparent 25rem),radial-gradient(circle at 94% 75%,rgba(124,58,237,.11),transparent 26rem),#0b1120; color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
         [data-testid="stHeader"] { background:rgba(11,17,32,.75); }
         [data-testid="stMainBlockContainer"] { max-width:1440px; padding-top:2.4rem; padding-bottom:3.25rem; }
@@ -59,6 +65,8 @@ def aplicar_tema():
         [data-testid="stPageLink"] a:hover { transform:translateY(-2px); border-color:rgba(96,165,250,.55); background:rgba(37,99,235,.15); text-decoration:none; }
         [data-testid="stAlert"] { border-radius:12px; border:1px solid var(--border); padding:.85rem 1rem; }
         [data-testid="stDataFrame"],[data-testid="stTable"] { border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+        [data-testid="stDataFrame"] { max-width:100%; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
+        input,textarea,select { -webkit-appearance:none; appearance:none; }
         *:focus-visible { outline:3px solid rgba(96,165,250,.55) !important; outline-offset:2px; }
         hr { border-color:var(--border) !important; }
         [data-testid="stPlotlyChart"] { padding:.6rem; border:1px solid var(--border); border-radius:16px; background:rgba(15,23,42,.45); }
@@ -72,6 +80,11 @@ def aplicar_tema():
         .st-key-sidebar-session .stButton > button { min-height:2.5rem; background:rgba(30,41,59,.88) !important; border-color:rgba(96,165,250,.48) !important; box-shadow:none; }
         @media (min-width: 1200px) {
             [data-testid="stMainBlockContainer"] { width:calc(100% - 4.5rem) !important; max-width:1440px !important; }
+        }
+        @media (min-width: 1800px) {
+            [data-testid="stMainBlockContainer"] { width:calc(100% - 7rem) !important; max-width:1680px !important; }
+            [data-testid="stHorizontalBlock"] { gap:1.25rem !important; }
+            [data-testid="stMetric"] { min-height:132px; }
         }
         @media (min-width: 769px) and (max-width: 1100px) {
             [data-testid="stMainBlockContainer"] { padding-left:1.5rem; padding-right:1.5rem; }
@@ -137,7 +150,7 @@ def aplicar_tema():
             .st-key-mobile-nav [data-testid="stExpander"] [data-testid="stPageLink"] a { min-height:2.45rem !important; }
             .st-key-sidebar-session { margin:.4rem .15rem .75rem; padding-top:.7rem; }
             /* No Streamlit web, a navegação superior não disputa espaço com controles fixos do navegador. */
-            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:3rem; right:0; bottom:auto; left:2.15rem; margin:0 !important; padding:.4rem .45rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.97); box-shadow:0 10px 24px rgba(0,0,0,.2); backdrop-filter:blur(14px); }
+            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:calc(3rem + env(safe-area-inset-top)); right:env(safe-area-inset-right); bottom:auto; left:calc(2.15rem + env(safe-area-inset-left)); margin:0 !important; padding:.4rem .45rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.97); box-shadow:0 10px 24px rgba(0,0,0,.2); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] { flex-wrap:nowrap !important; gap:.25rem !important; align-items:stretch !important; }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:auto !important; min-width:0 !important; flex:1 1 0 !important; margin:0 !important; }
@@ -164,11 +177,33 @@ def aplicar_tema():
             [data-testid="stHorizontalBlock"] { gap:.6rem !important; }
             [data-testid="stVerticalBlock"] { gap:.65rem !important; }
         }
+        @media (max-height: 720px) and (min-width: 769px) {
+            [data-testid="stMainBlockContainer"] { padding-top:1.25rem; padding-bottom:1.5rem; }
+            [data-testid="stDialog"] > div { max-height:88dvh !important; overflow-y:auto !important; }
+            [data-testid="stMetric"] { min-height:104px; padding:.85rem 1rem; }
+            h1 { margin-bottom:.65rem !important; }
+        }
+        @media (hover:none), (pointer:coarse) {
+            .stButton > button,[data-testid="stFormSubmitButton"] > button,[data-testid="stPageLink"] a { min-height:44px; }
+            [data-testid="stMetric"]:hover,.finance-kpi:hover,[data-testid="stVerticalBlockBorderWrapper"]:hover,
+            .stButton > button:hover,[data-testid="stPageLink"] a:hover { transform:none !important; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+            *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+        }
+        @media (prefers-contrast:more) {
+            :root { --border:rgba(203,213,225,.48); --muted:#cbd5e1; }
+            .stButton > button,[data-testid="stPageLink"] a { border-width:2px !important; }
+        }
+        @media (display-mode:standalone) and (max-width:768px) {
+            [data-testid="stHeader"] { padding-top:env(safe-area-inset-top); }
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    if str(st.session_state.get("usuario", "")).strip().lower() != "alison.nascimento":
+    _configurar_navegador()
+    if str(st.session_state.get("usuario", "")).strip().lower() != ADMIN_USER:
         st.markdown(
             "<style>[data-testid='stSidebarNav'] li:has(a[href*='Admin']) { display:none !important; }</style>",
             unsafe_allow_html=True,
@@ -177,6 +212,49 @@ def aplicar_tema():
     _renderizar_navegacao_mobile()
     _renderizar_barra_inferior_mobile()
     _renderizar_sessao_sidebar()
+
+
+def _configurar_navegador():
+    """Adiciona metadados web no documento principal sem armazenar dados no navegador."""
+    components.html(
+        """
+        <script>
+        (() => {
+          const doc = window.parent.document;
+          const addMeta = (name, content) => {
+            let el = doc.head.querySelector(`meta[name="${name}"]`);
+            if (!el) { el = doc.createElement("meta"); el.name = name; doc.head.appendChild(el); }
+            el.content = content;
+          };
+          addMeta("viewport", "width=device-width,initial-scale=1,viewport-fit=cover");
+          addMeta("theme-color", "#0b1120");
+          addMeta("apple-mobile-web-app-capable", "yes");
+          addMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+          addMeta("apple-mobile-web-app-title", "FinanceOS");
+          if (!doc.head.querySelector('link[rel="manifest"]')) {
+            const manifest = doc.createElement("link"); manifest.rel = "manifest";
+            manifest.href = "/app/static/manifest.webmanifest"; doc.head.appendChild(manifest);
+          }
+          if (!doc.head.querySelector('link[rel="mask-icon"]')) {
+            const icon = doc.createElement("link"); icon.rel = "mask-icon";
+            icon.href = "/app/static/financeos-icon.svg"; icon.color = "#2563eb"; doc.head.appendChild(icon);
+          }
+          let banner = doc.getElementById("financeos-offline");
+          if (!banner) {
+            banner = doc.createElement("div"); banner.id = "financeos-offline";
+            Object.assign(banner.style,{display:"none",position:"fixed",zIndex:"10000",left:"50%",bottom:"calc(1rem + env(safe-area-inset-bottom))",transform:"translateX(-50%)",padding:".65rem 1rem",borderRadius:"10px",background:"#991b1b",color:"white",font:"600 14px system-ui",boxShadow:"0 8px 24px rgba(0,0,0,.35)"});
+            banner.textContent = "Sem conexão. Não feche a página até a internet voltar."; doc.body.appendChild(banner);
+          }
+          const sync = () => banner.style.display = navigator.onLine ? "none" : "block";
+          window.parent.addEventListener("online", sync); window.parent.addEventListener("offline", sync); sync();
+          window.parent.clearTimeout(window.parent.__financeosSessionTimer);
+          window.parent.__financeosSessionTimer = window.parent.setTimeout(() => window.parent.location.reload(), __SESSION_TIMEOUT__ * 60 * 1000);
+        })();
+        </script>
+        """.replace("__SESSION_TIMEOUT__", str(SESSION_TIMEOUT_MINUTES)),
+        height=0,
+        width=0,
+    )
 
 
 def _renderizar_navegacao_mobile():
@@ -204,7 +282,8 @@ def _renderizar_navegacao_mobile():
                 st.page_link("pages/12_Holerite.py", label="Holerite")
                 st.page_link("pages/13_Conciliação.py", label="Conciliação")
                 st.page_link("pages/14_Relatórios.py", label="Relatórios")
-                if str(st.session_state.get("usuario", "")).strip().lower() == "alison.nascimento":
+                st.page_link("pages/16_Central_Financeira.py", label="Central financeira")
+                if str(st.session_state.get("usuario", "")).strip().lower() == ADMIN_USER:
                     st.page_link("pages/15_Admin.py", label="Admin")
 
 

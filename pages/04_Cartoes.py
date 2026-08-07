@@ -249,6 +249,26 @@ st.markdown("""
 .cards-section__title{font-size:18px;font-weight:750;}
 .cards-section__text{font-size:13px;color:#aab6cf;margin-top:2px;}
 
+@media (max-width:768px){
+    .credit-card{min-height:0;padding:clamp(18px,5vw,24px);border-radius:18px;}
+    .card-title{font-size:clamp(22px,7vw,28px);overflow-wrap:anywhere;}
+    .card-number{margin-top:22px;font-size:clamp(17px,5vw,23px);letter-spacing:clamp(2px,1vw,5px);}
+    .card-chip{width:52px;height:38px;margin-top:16px;}
+    .card-footer{gap:14px;flex-wrap:wrap;margin-top:20px;}
+    .cards-section{margin-top:22px;padding:13px 14px;align-items:flex-start;}
+}
+@media (max-width:390px){
+    .credit-card{padding:17px;}
+    .card-number{font-size:16px;letter-spacing:2px;}
+    .value{font-size:15px;}
+}
+@media (hover:none),(pointer:coarse){
+    .credit-card:hover{transform:none;box-shadow:0 18px 40px rgba(0,0,0,.45);}
+}
+@media (min-width:1800px){
+    .credit-card{min-height:340px;padding:32px;}
+}
+
 </style>
 """, unsafe_allow_html=True)
 

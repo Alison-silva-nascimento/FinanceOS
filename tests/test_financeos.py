@@ -16,6 +16,7 @@ from services import despesas_service, receitas_service
 from auth import _validar_senha, _validar_usuario
 from utils.mercado_pago_fatura import _compras_do_texto
 from utils.nubank_fatura import _valor_csv, ler_csv_fatura
+from utils.outros_fatura import ler_csv_fatura as ler_csv_outros
 
 
 class ArquivoEmMemoria:
@@ -76,6 +77,33 @@ class TesteImportacaoMercadoPago(unittest.TestCase):
         self.assertEqual((compras[0]["parcela_atual"], compras[0]["parcelas"]), (5, 6))
 
 
+class TesteImportacaoOutros(unittest.TestCase):
+    def test_leitura_csv_picpay(self):
+        arquivo = ArquivoEmMemoria(
+            "Data da compra;Estabelecimento;Valor da compra\n"
+            "05/08/2026;Mercado Central;R$ 120,50\n"
+            "06/08/2026;Loja Online 2/3;89,90\n"
+        )
+        compras = ler_csv_outros(arquivo, "2026-08")
+        self.assertEqual(len(compras), 2)
+        self.assertEqual(compras[0]["data"], "2026-08-05")
+        self.assertEqual(compras[1]["valor_parcela"], 89.90)
+        self.assertEqual((compras[1]["parcela_atual"], compras[1]["parcelas"]), (2, 3))
+
+    def test_extrato_picpay_mostra_apenas_movimentacoes_com_cartao(self):
+        arquivo = ArquivoEmMemoria(
+            'data,hora,tipo,"origem / destino",valor,"forma de pagamento"\n'
+            '2026-07-26,20:58,"Pix enviado","Pessoa A","−R$ 50,00","Com saldo"\n'
+            '2026-07-26,17:18,"Pix enviado","Pessoa B","−R$ 20,50","Com saldo + cartão"\n'
+            '2026-07-25,15:25,"Empréstimo contratado","Crédito","+R$ 800,00",\n'
+        )
+        compras = ler_csv_outros(arquivo, "2026-08")
+        self.assertEqual(len(compras), 1)
+        self.assertEqual(compras[0]["valor_parcela"], 20.50)
+        self.assertFalse(compras[0]["incluir"])
+        self.assertIn("saldo + cartão", compras[0]["observacao"])
+
+
 class TesteRegrasDeAcesso(unittest.TestCase):
     def test_padrao_de_usuario_e_senha_forte(self):
         self.assertTrue(_validar_usuario("nome.sobrenome")[0])
@@ -130,6 +158,32 @@ class TesteBancoTemporario(unittest.TestCase):
         despesas = self.db.listar_despesas()
         self.assertEqual(len(despesas), 1)
         self.assertEqual(despesas[0]["data"], "2026-08-05")
+
+    def test_lote_de_importacao_pode_ser_desfeito(self):
+        lote = self.db.iniciar_importacao("fatura", "PicPay", competencia="2026-08", cartao_id=1)
+        self.db.adicionar_compra_cartao(1, "2026-08-05", "Compra", "Outros", 90, 3, 1, "2026-08", lote)
+        self.db.finalizar_importacao(lote, 1)
+        self.assertEqual(len(self.db.listar_compras_cartao(1)), 1)
+        self.assertEqual(self.db.desfazer_importacao(lote), 1)
+        self.assertEqual(len(self.db.listar_compras_cartao(1)), 0)
+
+    def test_regras_de_categoria_e_parcelas_futuras(self):
+        self.db.salvar_regra_categoria("ifood", "Alimentação")
+        self.assertEqual(self.db.categorizar_por_regras("IFOOD RESTAURANTE"), "Alimentação")
+        self.db.adicionar_compra_cartao(1, "2026-08-05", "Notebook", "Compras", 300, 3, 1, "2026-08")
+        projecao = self.db.projecao_parcelas()
+        self.assertEqual([x["competencia"] for x in projecao], ["2026-08", "2026-09", "2026-10"])
+        self.assertEqual(sum(x["valor"] for x in projecao), 300.0)
+
+    def test_extrato_nao_duplica_e_bloqueia_fechamento_pendente(self):
+        itens = [{"data":"2026-08-05","descricao":"Mercado","valor":-50.0}]
+        self.assertEqual(self.db.importar_extrato(itens, "Teste"), 1)
+        self.assertEqual(self.db.importar_extrato(itens, "Teste"), 0)
+        with self.assertRaises(ValueError):
+            self.db.fechar_mes("2026-08")
+        conciliacao = self.db.listar_conciliacoes()[0]
+        self.db.marcar_conciliado(conciliacao["id"])
+        self.assertEqual(self.db.fechar_mes("2026-08")["pendencias"], 0)
 
 
 if __name__ == "__main__":
