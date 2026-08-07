@@ -84,8 +84,8 @@ def _verificar_senha(senha, hash_armazenado):
 def possui_usuario():
     conn = conectar()
     total = conn.execute(
-        "SELECT COUNT(*) FROM usuarios WHERE senha_hash IS NOT NULL AND senha_hash != ''"
-    ).fetchone()[0]
+        "SELECT COUNT(*) AS total FROM usuarios WHERE senha_hash IS NOT NULL AND senha_hash != ''"
+    ).fetchone()["total"]
     conn.close()
     return total > 0
 
