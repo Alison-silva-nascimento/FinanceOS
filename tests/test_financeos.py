@@ -150,7 +150,11 @@ class TesteBancoTemporario(unittest.TestCase):
         self.db.adicionar_compra_cartao(1, "2026-08-05", "Compra teste", "Outros", 100, 1, competencia="2026-08")
         self.db.salvar_resumo_fatura(1, "2026-08", 280, "Nubank")
         self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 280.0)
-        self.assertEqual(self.db.remover_faturas_cartao(1, "2026-08"), 1)
+        self.db.adicionar_compra_cartao(1, "2026-08-08", "Compra manual", "Outros", 120, 2, competencia="2026-08")
+        self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 340.0)
+        self.db.adicionar_compra_cartao(1, "2026-08-08", "Compra importada", "Outros", 30, 1, competencia="2026-08", importacao_id=999)
+        self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 340.0)
+        self.assertEqual(self.db.remover_faturas_cartao(1, "2026-08"), 3)
         self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 0.0)
         self.assertIsNone(self.db.obter_resumo_fatura(1, "2026-08"))
 

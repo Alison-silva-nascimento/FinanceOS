@@ -435,7 +435,18 @@ def adicionar_compra_cartao(cartao_id, data, descricao, categoria, valor, parcel
     usuario_id = _usuario_atual()
     if not _obter("cartoes", cartao_id): raise ValueError("Cartão inválido.")
     competencia = competencia or str(data)[:7]
-    conn = conectar(); conn.execute("INSERT INTO compras_cartao(cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id,importacao_id) VALUES(?,?,?,?,?,?,?,?,?,?)", (cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id,importacao_id)); conn.commit(); conn.close()
+    conn = conectar()
+    conn.execute("INSERT INTO compras_cartao(cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id,importacao_id) VALUES(?,?,?,?,?,?,?,?,?,?)", (cartao_id,data,descricao,categoria,valor,parcelas,parcela_atual,competencia,usuario_id,importacao_id))
+    # O total oficial importado já inclui as compras daquele arquivo. Somente
+    # lançamentos manuais posteriores devem acrescentar a parcela do ciclo.
+    if importacao_id is None:
+        conn.execute("""
+            UPDATE faturas_resumo
+               SET total_a_pagar=total_a_pagar+?, atualizado_em=CURRENT_TIMESTAMP
+             WHERE cartao_id=? AND competencia=? AND usuario_id=?
+        """, (float(valor) / int(parcelas), cartao_id, competencia, usuario_id))
+    conn.commit()
+    conn.close()
 
 
 def listar_compras_cartao(cartao_id):
