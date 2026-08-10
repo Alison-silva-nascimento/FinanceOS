@@ -8,7 +8,13 @@ import re
 
 
 def _sql_postgres(sql):
-    """Converte os marcadores DB-API do SQLite para os do psycopg."""
+    """Converte para PostgreSQL os trechos SQLite usados pela aplicação."""
+    sql = re.sub(
+        r"GROUP_CONCAT\s*\(\s*([A-Za-z_][\w.]*)\s*\)",
+        r"STRING_AGG(\1::text, ',')",
+        sql,
+        flags=re.IGNORECASE,
+    )
     return sql.replace("?", "%s")
 
 
