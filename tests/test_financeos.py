@@ -167,6 +167,15 @@ class TesteBancoTemporario(unittest.TestCase):
         self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 0.0)
         self.assertIsNone(self.db.obter_resumo_fatura(1, "2026-08"))
 
+    def test_edicao_de_credito_manual_aceita_valor_negativo(self):
+        self.db.adicionar_compra_cartao(1, "2026-08-05", "Crédito", "Outros", -30, 1, competencia="2026-08")
+        self.db.salvar_resumo_fatura(1, "2026-08", 100, "Manual")
+        credito = next(item for item in self.db.listar_compras_cartao(1) if item["descricao"] == "Crédito")
+        self.assertTrue(self.db.editar_compra_cartao(credito["id"], "2026-08-06", "Crédito corrigido", "Outros", -45, 1))
+        self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 85.0)
+        with self.assertRaises(ValueError):
+            self.db.editar_compra_cartao(credito["id"], "2026-08-06", "Crédito corrigido", "Outros", 0, 1)
+
     def test_recorrencia_nao_duplica_no_mes(self):
         self.db.adicionar_recorrencia("Despesa", "Celular", "Fatura Claro", 72, 5)
         self.assertEqual(self.db.gerar_recorrencias("2026-08"), 1)

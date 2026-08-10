@@ -107,7 +107,7 @@ if abertas:
                         data_editada = st.date_input("Data", value=pd.to_datetime(compra["data"]).date())
                         descricao_editada = st.text_input("Descrição", value=compra["descricao"])
                         categoria_editada = st.selectbox("Categoria", categorias, index=categorias.index(compra["categoria"]) if compra["categoria"] in categorias else len(categorias)-1)
-                        valor_editado = st.number_input("Valor total", min_value=0.01, value=float(compra["valor"]), step=10.0)
+                        valor_editado = st.number_input("Valor total", value=float(compra["valor"]), step=10.0, format="%.2f")
                         parcelas_editadas = st.number_input("Parcelas", min_value=1, max_value=48, value=int(compra["parcelas"]))
                         salvar_edicao = st.form_submit_button("Salvar alterações", type="primary", use_container_width=True)
                     if salvar_edicao:

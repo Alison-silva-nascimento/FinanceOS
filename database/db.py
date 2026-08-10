@@ -489,8 +489,8 @@ def editar_compra_cartao(registro_id, data, descricao, categoria, valor, parcela
     parcelas = int(parcelas)
     if not descricao.strip():
         raise ValueError("Informe a descrição da compra.")
-    if valor <= 0 or parcelas < 1:
-        raise ValueError("Informe valor e parcelas válidos.")
+    if valor == 0 or parcelas < 1:
+        raise ValueError("Informe um valor diferente de zero e parcelas válidas.")
     conn = conectar()
     try:
         atual = conn.execute("SELECT * FROM compras_cartao WHERE id=? AND usuario_id=?", (registro_id, usuario_id)).fetchone()
