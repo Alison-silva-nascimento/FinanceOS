@@ -153,9 +153,36 @@ def tela_login():
         }
 
         @media (max-width: 700px) {
-            [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
-            div[data-testid="stForm"] { padding: 1.25rem !important; border-radius: 14px !important; }
-            .login-trust { flex-wrap: wrap; gap: .45rem .75rem; }
+            .main .block-container, [data-testid="stMainBlockContainer"] {
+                width:100% !important;
+                max-width:100% !important;
+                margin:0 auto !important;
+                padding:2rem 1rem calc(2rem + env(safe-area-inset-bottom)) !important;
+                box-sizing:border-box !important;
+            }
+            [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"] {
+                width:100% !important;
+                justify-content:center !important;
+            }
+            [data-testid="stMainBlockContainer"] [data-testid="stColumn"],
+            [data-testid="stMainBlockContainer"] [data-testid="column"] {
+                width:100% !important;
+                max-width:34rem !important;
+                margin:0 auto !important;
+                flex:0 0 100% !important;
+            }
+            .login-eyebrow { width:max-content; max-width:100%; margin-left:auto; margin-right:auto; }
+            .login-title,.login-description,.login-trust,
+            [data-testid="stTabs"],div[data-testid="stForm"],[data-testid="stAlert"] {
+                width:min(100%,32rem) !important;
+                max-width:32rem !important;
+                margin-left:auto !important;
+                margin-right:auto !important;
+                box-sizing:border-box !important;
+            }
+            div[data-testid="stForm"] { padding:1.25rem !important; border-radius:14px !important; }
+            div[data-baseweb="tab-list"] { margin-left:auto; margin-right:auto; }
+            .login-trust { justify-content:center; flex-wrap:wrap; gap:.45rem .75rem; text-align:center; }
         }
         </style>
         """,

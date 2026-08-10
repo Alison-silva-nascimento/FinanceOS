@@ -105,15 +105,14 @@ def aplicar_tema():
                 overflow-x:hidden !important;
             }
             .main .block-container, [data-testid="stMainBlockContainer"] {
-                /* Reserva a trilha recolhida do Streamlit para ela não cobrir texto. */
-                width:calc(100% - 2.15rem) !important;
+                width:100% !important;
                 max-width:100% !important;
                 min-width:0 !important;
-                margin-left:2.15rem !important;
-                margin-right:0 !important;
-                padding:calc(7.15rem + env(safe-area-inset-top)) .9rem calc(2.4rem + env(safe-area-inset-bottom)) !important;
+                margin:0 auto !important;
+                padding:calc(7.65rem + env(safe-area-inset-top)) 1rem calc(2.4rem + env(safe-area-inset-bottom)) !important;
                 box-sizing:border-box !important;
             }
+            [data-testid="stToolbar"] { display:none !important; }
             /* Streamlit mantém larguras calculadas em linha; sobrescrevê-las evita
                colunas estreitas, que causavam campos comprimidos em celulares. */
             [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.7rem !important; align-items:stretch !important; }
@@ -141,19 +140,28 @@ def aplicar_tema():
             [data-testid="stPageLink"] a, [data-testid="stPageLink-NavLink"] { width:100% !important; min-height:3rem !important; }
             .stButton > button, [data-testid="stFormSubmitButton"] > button { min-height:3rem; font-size:.98rem; }
             [data-testid="stDataFrame"] { overflow-x:auto; }
-            [data-testid="stSidebar"] { min-width:min(84vw, 340px) !important; }
+            [data-testid="stSidebar"] {
+                width:94vw !important;
+                min-width:94vw !important;
+                max-width:380px !important;
+                border-right:1px solid rgba(56,189,248,.24) !important;
+                background:#081321 !important;
+                box-shadow:18px 0 45px rgba(0,5,15,.48) !important;
+            }
+            [data-testid="stSidebar"] > div,
+            [data-testid="stSidebarContent"] { background:#081321 !important; }
             /* No celular, o menu nativo é substituído por uma versão curta e agrupada. */
             [data-testid="stSidebarNav"] { display:none !important; }
-            .st-key-mobile-nav { display:block; padding:.8rem .15rem .75rem; }
+            .st-key-mobile-nav { display:block; padding:4.4rem .35rem .75rem; }
             .st-key-mobile-nav [data-testid="stPageLink"] { margin:.1rem 0; }
             .st-key-mobile-nav [data-testid="stPageLink"] a { min-height:2.75rem !important; padding:.55rem .7rem !important; border:0; background:transparent; box-shadow:none; }
             .st-key-mobile-nav [data-testid="stPageLink"] a:hover { background:rgba(59,130,246,.15); transform:none; }
-            .st-key-mobile-nav [data-testid="stExpander"] { margin-top:.55rem; padding:.15rem .7rem; border-radius:12px !important; border-color:rgba(96,165,250,.22) !important; background:rgba(30,41,59,.42) !important; box-shadow:none; }
+            .st-key-mobile-nav [data-testid="stExpander"] { margin-top:.55rem; padding:.15rem .7rem; border-radius:12px !important; border-color:rgba(96,165,250,.22) !important; background:#101d31 !important; box-shadow:none; }
             .st-key-mobile-nav [data-testid="stExpander"] summary { min-height:2.55rem; color:#cbd5e1; font-weight:680; }
             .st-key-mobile-nav [data-testid="stExpander"] [data-testid="stPageLink"] a { min-height:2.45rem !important; }
             .st-key-sidebar-session { margin:.4rem .15rem .75rem; padding-top:.7rem; }
             /* No Streamlit web, a navegação superior não disputa espaço com controles fixos do navegador. */
-            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:calc(3rem + env(safe-area-inset-top)); right:env(safe-area-inset-right); bottom:auto; left:calc(2.15rem + env(safe-area-inset-left)); margin:0 !important; padding:.4rem .45rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(11,17,32,.97); box-shadow:0 10px 24px rgba(0,0,0,.2); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); }
+            .st-key-mobile-bottom-nav { display:block; position:fixed; z-index:999; top:calc(3rem + env(safe-area-inset-top)); right:0; bottom:auto; left:0; width:100%; margin:0 !important; padding:.4rem .55rem; border-top:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.24); background:rgba(8,19,33,.98); box-shadow:0 10px 24px rgba(0,0,0,.24); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); box-sizing:border-box; }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] { flex-wrap:nowrap !important; gap:.25rem !important; align-items:stretch !important; }
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
             .st-key-mobile-bottom-nav [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:auto !important; min-width:0 !important; flex:1 1 0 !important; margin:0 !important; }
@@ -169,10 +177,12 @@ def aplicar_tema():
             .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
             .st-key-quick-actions [data-testid="stHorizontalBlock"] > [data-testid="column"] { width:calc(50% - .35rem) !important; flex:0 0 calc(50% - .35rem) !important; }
             .st-key-quick-actions [data-testid="stPageLink"] a { min-height:2.85rem !important; padding:.55rem .65rem !important; font-size:.86rem; }
+            [class*="viewerBadge"], [class*="ViewerBadge"],
+            [data-testid="manage-app-button"] { display:none !important; }
         }
 
         @media (max-width: 420px) {
-            .main .block-container, [data-testid="stMainBlockContainer"] { padding-left:.7rem !important; padding-right:.7rem !important; }
+            .main .block-container, [data-testid="stMainBlockContainer"] { padding-left:.8rem !important; padding-right:.8rem !important; }
             h1 { font-size:1.6rem !important; }
             .hero { padding:1.15rem !important; } .hero h1 { font-size:1.65rem !important; }
             .big-money { font-size:1.8rem !important; }
@@ -655,14 +665,15 @@ def _renderizar_navegacao_mobile():
                 st.page_link("pages/05_Bancos.py", label="Bancos")
                 st.page_link("pages/06_Patrimonio.py", label="Patrimônio")
                 st.page_link("pages/07_Metas.py", label="Metas")
-                st.page_link("pages/08_Configuracoes.py", label="Configurações")
                 st.page_link("pages/09_Orcamentos.py", label="Orçamentos")
                 st.page_link("pages/10_Recorrencias.py", label="Recorrências")
+            with st.expander("Mais opções"):
                 st.page_link("pages/11_Transferencias.py", label="Transferências")
                 st.page_link("pages/12_Holerite.py", label="Holerite")
                 st.page_link("pages/13_Conciliação.py", label="Conciliação")
                 st.page_link("pages/14_Relatórios.py", label="Relatórios")
                 st.page_link("pages/16_Central_Financeira.py", label="Central financeira")
+                st.page_link("pages/08_Configuracoes.py", label="Configurações")
                 if str(st.session_state.get("usuario", "")).strip().lower() == ADMIN_USER:
                     st.page_link("pages/15_Admin.py", label="Admin")
 
