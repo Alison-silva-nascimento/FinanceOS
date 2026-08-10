@@ -83,26 +83,39 @@ st.markdown("""
 
 receitas_todas = listar_receitas()
 despesas_todas = listar_despesas()
+holerites_todos = listar_holerites()
 
 mes_atual = datetime.now().strftime("%Y-%m")
+competencias_disponiveis = {mes_atual}
+for item in receitas_todas + despesas_todas:
+    competencia = str(item["data"])[:7]
+    if len(competencia) == 7 and competencia[4] == "-":
+        competencias_disponiveis.add(competencia)
+for item in holerites_todos:
+    competencia = str(item["competencia"])[:7]
+    if len(competencia) == 7 and competencia[4] == "-":
+        competencias_disponiveis.add(competencia)
+competencias_disponiveis = sorted(competencias_disponiveis, reverse=True)
+
 with st.container(border=True):
     periodo_info, periodo_input = st.columns([1.35, 1])
     with periodo_info:
         st.markdown("#### 📅 Período do Dashboard")
         st.caption("Escolha o mês para visualizar saldo, despesas, receitas e a folha salarial.")
     with periodo_input:
-        mes_referencia = st.text_input(
+        mes_referencia = st.selectbox(
             "Competência",
-            value=mes_atual,
+            options=competencias_disponiveis,
+            index=competencias_disponiveis.index(mes_atual),
             key="mes_dashboard",
-            help="Formato AAAA-MM. Exemplo: 2026-07",
+            help="Selecione o mês que deseja analisar.",
         )
 receitas = [r for r in receitas_todas if str(r["data"]).startswith(mes_referencia)]
 despesas = [d for d in despesas_todas if str(d["data"]).startswith(mes_referencia)]
 bancos = listar_bancos()
 metas = listar_metas()
 patrimonio = listar_patrimonio()
-holerite_mes = next((item for item in listar_holerites() if item["competencia"] == mes_referencia), None)
+holerite_mes = next((item for item in holerites_todos if item["competencia"] == mes_referencia), None)
 projecao = projecao_mes(mes_referencia)
 gastos_cartao = gastos_cartao_categoria(mes_referencia)
 
