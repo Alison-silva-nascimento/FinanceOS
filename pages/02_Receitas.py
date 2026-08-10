@@ -411,21 +411,20 @@ else:
 st.subheader("📋 Receitas cadastradas")
 
 # Cabeçalho
-cab1, cab2, cab3, cab4, cab5, cab6 = st.columns([2, 2, 3, 2, 1, 1])
+cab1, cab2, cab3, cab4, cab5 = st.columns([1.2, 1.3, 2.5, 1.2, 1.0], gap="small")
 
 cab1.markdown("**📅 Data**")
 cab2.markdown("**📂 Categoria**")
 cab3.markdown("**📝 Descrição**")
 cab4.markdown("**💰 Valor**")
-cab5.markdown("**✏️**")
-cab6.markdown("**🗑️**")
+cab5.markdown("**⚙️ Ações**")
 
 st.divider()
 
 # Linhas
 for _, row in df.iterrows():
 
-    col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 3, 2, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([1.2, 1.3, 2.5, 1.2, 1.0], gap="small")
 
     with col1:
         st.write(row["Data"])
@@ -439,31 +438,14 @@ for _, row in df.iterrows():
     with col4:
         st.write(row["Valor"])
 
-    # =====================================
-    # EDITAR
-    # =====================================
-
     with col5:
-
-        if st.button(
-        "✏️",
-        key=f"edit_{row['ID']}"
-    ):
-
-         modal_editar_receita(row["ID"])
-
-    # =====================================
-    # EXCLUIR
-    # =====================================
-
-    with col6:
-
-        if st.button(
-            "🗑",
-            key=f"del_{row['ID']}"
-        ):
-
-            st.session_state["confirmar_exclusao"] = row["ID"]
+        acao_editar, acao_excluir = st.columns(2, gap="small")
+        with acao_editar:
+            if st.button("✏️", key=f"edit_{row['ID']}", use_container_width=True, help="Editar receita"):
+                modal_editar_receita(row["ID"])
+        with acao_excluir:
+            if st.button("🗑", key=f"del_{row['ID']}", use_container_width=True, help="Excluir receita"):
+                st.session_state["confirmar_exclusao"] = row["ID"]
 
 
 # ==========================================
