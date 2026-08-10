@@ -1,5 +1,8 @@
 """Tema visual compartilhado por todas as páginas do FinanceOS."""
 
+from base64 import b64encode
+from html import escape
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -376,17 +379,56 @@ def aplicar_tema():
             .st-key-desktop-nav .financeos-nav-brand {
                 display:flex;
                 align-items:center;
+                gap:.45rem;
                 min-height:2.35rem;
-                padding:0 .65rem;
+                padding:0 .5rem;
                 color:#f8fafc;
                 font-size:.9rem;
                 font-weight:800;
                 letter-spacing:-.02em;
                 white-space:nowrap;
             }
-            .st-key-desktop-nav .financeos-nav-brand span {
-                margin-right:.42rem;
+            .st-key-desktop-nav .financeos-nav-mark {
                 color:var(--fos-cyan);
+            }
+            .st-key-desktop-nav .financeos-nav-user {
+                display:flex;
+                align-items:center;
+                gap:.35rem;
+                min-width:0;
+                margin-left:.18rem;
+                padding-left:.55rem;
+                border-left:1px solid var(--fos-line);
+            }
+            .st-key-desktop-nav .financeos-nav-avatar {
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                width:27px;
+                height:27px;
+                flex:0 0 27px;
+                overflow:hidden;
+                border:1px solid rgba(56,189,248,.34);
+                border-radius:50%;
+                background:linear-gradient(135deg,rgba(37,99,235,.55),rgba(8,145,178,.40));
+                color:#fff;
+                font-size:.68rem;
+                font-weight:800;
+                box-shadow:0 0 0 3px rgba(56,189,248,.06);
+            }
+            .st-key-desktop-nav .financeos-nav-avatar img {
+                width:100%;
+                height:100%;
+                object-fit:cover;
+            }
+            .st-key-desktop-nav .financeos-nav-name {
+                max-width:6.5rem;
+                overflow:hidden;
+                color:#b8c7da;
+                font-size:.72rem;
+                font-weight:700;
+                text-overflow:ellipsis;
+                white-space:nowrap;
             }
             .st-key-desktop-nav [data-testid="stPageLink"] a,
             .st-key-desktop-nav [data-testid="stPopover"] > button {
@@ -448,12 +490,43 @@ def _renderizar_navegacao_desktop():
     if not st.session_state.get("logado"):
         return
     usuario_admin = str(st.session_state.get("usuario", "")).strip().lower() == ADMIN_USER
+    nome_usuario = str(st.session_state.get("usuario", "")).strip().lstrip("@") or "Usuário"
+    foto_usuario = None
+    try:
+        from auth import obter_perfil
+        perfil = obter_perfil(st.session_state.get("usuario"))
+        if perfil:
+            nome_usuario = (perfil["nome"] or nome_usuario).strip().split()[0]
+            foto_usuario = perfil["foto_perfil"]
+    except Exception:
+        pass
+    iniciais = "".join(parte[0] for parte in nome_usuario.split()[:2]).upper() or "U"
+    avatar = escape(iniciais)
+    if foto_usuario:
+        conteudo = bytes(foto_usuario)
+        if conteudo.startswith(b"\x89PNG"):
+            mime = "image/png"
+        elif conteudo.startswith(b"\xff\xd8\xff"):
+            mime = "image/jpeg"
+        elif conteudo.startswith(b"RIFF") and conteudo[8:12] == b"WEBP":
+            mime = "image/webp"
+        else:
+            mime = None
+        if mime:
+            fonte = b64encode(conteudo).decode("ascii")
+            avatar = f'<img src="data:{mime};base64,{fonte}" alt="Foto de perfil">'
     with st.container(key="desktop-nav"):
         marca, inicio, dashboard, movimentacoes, cartoes, planejamento, relatorios, mais = st.columns(
-            [1.35, .72, .88, 1.12, .78, 1.05, .88, .68]
+            [1.8, .68, .84, 1.08, .75, 1.02, .84, .65]
         )
         with marca:
-            st.markdown('<div class="financeos-nav-brand"><span>◆</span> FinanceOS</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="financeos-nav-brand"><span class="financeos-nav-mark">◆</span>'
+                f'<strong>FinanceOS</strong><span class="financeos-nav-user">'
+                f'<span class="financeos-nav-avatar">{avatar}</span>'
+                f'<span class="financeos-nav-name">{escape(nome_usuario)}</span></span></div>',
+                unsafe_allow_html=True,
+            )
         with inicio:
             st.page_link("app.py", label="Início", use_container_width=True)
         with dashboard:
