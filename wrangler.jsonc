@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "financeos",
+  "compatibility_date": "2026-08-10",
+  "assets": {
+    "directory": "./cloudflare-pages",
+    "not_found_handling": "single-page-application"
+  }
+}

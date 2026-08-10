@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071323">
+  <meta name="description" content="FinanceOS — gestão financeira pessoal.">
+  <title>FinanceOS</title>
+  <link rel="icon" href="/financeos-icon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --financeos-bg: #071323;
+      --streamlit-embed-bar-height: 42px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--financeos-bg);
+    }
+
+    .financeos-shell {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: var(--financeos-bg);
+    }
+
+    .financeos-shell iframe {
+      display: block;
+      width: 100%;
+      height: calc(100vh + var(--streamlit-embed-bar-height));
+      height: calc(100dvh + var(--streamlit-embed-bar-height));
+      border: 0;
+      background: var(--financeos-bg);
+    }
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: grid;
+      place-items: center;
+      color: #8ea2be;
+      font: 500 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    iframe {
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 767px) {
+      :root {
+        --streamlit-embed-bar-height: 44px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="financeos-shell">
+    <div class="loading" aria-hidden="true">Abrindo o FinanceOS…</div>
+    <iframe
+      src="https://financeosv2.streamlit.app/?embed=true&embed_options=hide_loading_screen&embed_options=dark_theme"
+      title="FinanceOS"
+      allow="clipboard-read; clipboard-write; fullscreen"
+      referrerpolicy="strict-origin-when-cross-origin"
+    ></iframe>
+  </main>
+</body>
+</html>
