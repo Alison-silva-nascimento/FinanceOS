@@ -314,6 +314,14 @@ def aplicar_tema():
             background:rgba(8,20,35,.68);
             box-shadow:var(--fos-shadow);
         }
+        [data-testid="stDataFrame"],[data-testid="stTable"],
+        [data-testid="stDataFrame"] *,[data-testid="stTable"] * {
+            font-size:.82rem;
+        }
+        [data-testid="stTable"] th,[data-testid="stTable"] td {
+            padding:.52rem .65rem;
+            line-height:1.35;
+        }
         [data-testid="stPlotlyChart"] {
             border-color:var(--fos-line);
             border-radius:13px;
@@ -459,6 +467,15 @@ def aplicar_tema():
                 box-shadow:inset 0 -2px 0 var(--fos-cyan) !important;
             }
             .st-key-desktop-nav [data-testid="stPopover"] { width:100%; }
+            body[data-finance-nav="movimentacoes"] .st-key-nav-movimentacoes [data-testid="stPopover"] > button,
+            body[data-finance-nav="cartoes"] .st-key-nav-cartoes [data-testid="stPopover"] > button,
+            body[data-finance-nav="planejamento"] .st-key-nav-planejamento [data-testid="stPopover"] > button,
+            body[data-finance-nav="mais"] .st-key-nav-mais [data-testid="stPopover"] > button {
+                border-color:rgba(56,189,248,.36) !important;
+                background:linear-gradient(100deg,rgba(37,99,235,.34),rgba(8,145,178,.22)) !important;
+                color:#fff !important;
+                box-shadow:inset 0 -2px 0 var(--fos-cyan) !important;
+            }
         }
 
         @media (max-width:768px) {
@@ -532,37 +549,41 @@ def _renderizar_navegacao_desktop():
         with dashboard:
             st.page_link("pages/01_Dashboard.py", label="Dashboard", use_container_width=True)
         with movimentacoes:
-            with st.popover("Movimentações", use_container_width=True):
-                st.page_link("pages/02_Receitas.py", label="Receitas", icon="💰", use_container_width=True)
-                st.page_link("pages/03_Despesas.py", label="Despesas", icon="💸", use_container_width=True)
-                st.page_link("pages/11_Transferencias.py", label="Transferências", icon="↔️", use_container_width=True)
-                st.page_link("pages/13_Conciliação.py", label="Conciliação", icon="✅", use_container_width=True)
+            with st.container(key="nav-movimentacoes"):
+                with st.popover("Movimentações", use_container_width=True):
+                    st.page_link("pages/02_Receitas.py", label="Receitas", icon="💰", use_container_width=True)
+                    st.page_link("pages/03_Despesas.py", label="Despesas", icon="💸", use_container_width=True)
+                    st.page_link("pages/11_Transferencias.py", label="Transferências", icon="↔️", use_container_width=True)
+                    st.page_link("pages/13_Conciliação.py", label="Conciliação", icon="✅", use_container_width=True)
         with cartoes:
-            with st.popover("Cartões", use_container_width=True):
-                st.page_link("pages/04_Cartoes.py", label="Cartões", icon="💳", use_container_width=True)
-                st.page_link("pages/04_Controle_de_gastos.py", label="Controle de gastos", icon="🎯", use_container_width=True)
-                st.page_link("pages/04_Importar_fatura.py", label="Importar fatura", icon="📥", use_container_width=True)
+            with st.container(key="nav-cartoes"):
+                with st.popover("Cartões", use_container_width=True):
+                    st.page_link("pages/04_Cartoes.py", label="Cartões", icon="💳", use_container_width=True)
+                    st.page_link("pages/04_Controle_de_gastos.py", label="Controle de gastos", icon="🎯", use_container_width=True)
+                    st.page_link("pages/04_Importar_fatura.py", label="Importar fatura", icon="📥", use_container_width=True)
         with planejamento:
-            with st.popover("Planejamento", use_container_width=True):
-                st.page_link("pages/05_Bancos.py", label="Bancos", icon="🏦", use_container_width=True)
-                st.page_link("pages/06_Patrimonio.py", label="Patrimônio", icon="🏠", use_container_width=True)
-                st.page_link("pages/07_Metas.py", label="Metas", icon="🎯", use_container_width=True)
-                st.page_link("pages/09_Orcamentos.py", label="Orçamentos", icon="📋", use_container_width=True)
-                st.page_link("pages/10_Recorrencias.py", label="Recorrências", icon="🔁", use_container_width=True)
+            with st.container(key="nav-planejamento"):
+                with st.popover("Planejamento", use_container_width=True):
+                    st.page_link("pages/05_Bancos.py", label="Bancos", icon="🏦", use_container_width=True)
+                    st.page_link("pages/06_Patrimonio.py", label="Patrimônio", icon="🏠", use_container_width=True)
+                    st.page_link("pages/07_Metas.py", label="Metas", icon="🎯", use_container_width=True)
+                    st.page_link("pages/09_Orcamentos.py", label="Orçamentos", icon="📋", use_container_width=True)
+                    st.page_link("pages/10_Recorrencias.py", label="Recorrências", icon="🔁", use_container_width=True)
         with relatorios:
             st.page_link("pages/14_Relatórios.py", label="Relatórios", use_container_width=True)
         with mais:
-            with st.popover("Mais", use_container_width=True):
-                st.page_link("pages/12_Holerite.py", label="Holerite", icon="📄", use_container_width=True)
-                st.page_link("pages/16_Central_Financeira.py", label="Central financeira", icon="🧭", use_container_width=True)
-                st.page_link("pages/08_Configuracoes.py", label="Configurações", icon="⚙️", use_container_width=True)
-                st.page_link("pages/00_👤_Perfil.py", label="Meu perfil", icon="👤", use_container_width=True)
-                if usuario_admin:
-                    st.page_link("pages/15_Admin.py", label="Administração", icon="🛡️", use_container_width=True)
-                st.divider()
-                if st.button("Sair da conta", use_container_width=True, key="sair_desktop"):
-                    st.session_state.clear()
-                    st.rerun()
+            with st.container(key="nav-mais"):
+                with st.popover("Mais", use_container_width=True):
+                    st.page_link("pages/12_Holerite.py", label="Holerite", icon="📄", use_container_width=True)
+                    st.page_link("pages/16_Central_Financeira.py", label="Central financeira", icon="🧭", use_container_width=True)
+                    st.page_link("pages/08_Configuracoes.py", label="Configurações", icon="⚙️", use_container_width=True)
+                    st.page_link("pages/00_👤_Perfil.py", label="Meu perfil", icon="👤", use_container_width=True)
+                    if usuario_admin:
+                        st.page_link("pages/15_Admin.py", label="Administração", icon="🛡️", use_container_width=True)
+                    st.divider()
+                    if st.button("Sair da conta", use_container_width=True, key="sair_desktop"):
+                        st.session_state.clear()
+                        st.rerun()
 
 
 def _configurar_navegador():
@@ -582,6 +603,14 @@ def _configurar_navegador():
           addMeta("apple-mobile-web-app-capable", "yes");
           addMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
           addMeta("apple-mobile-web-app-title", "FinanceOS");
+          const rota = decodeURIComponent(window.parent.location.pathname).toLowerCase();
+          const pertence = (nomes) => nomes.some((nome) => rota.includes(nome));
+          let grupo = "";
+          if (pertence(["receitas", "despesas", "transferencias", "concilia"])) grupo = "movimentacoes";
+          else if (pertence(["cartoes", "controle_de_gastos", "importar_fatura"])) grupo = "cartoes";
+          else if (pertence(["bancos", "patrimonio", "metas", "orcamentos", "recorrencias"])) grupo = "planejamento";
+          else if (pertence(["holerite", "central_financeira", "configuracoes", "perfil", "admin"])) grupo = "mais";
+          doc.body.dataset.financeNav = grupo;
           if (!doc.head.querySelector('link[rel="manifest"]')) {
             const manifest = doc.createElement("link"); manifest.rel = "manifest";
             manifest.href = "/app/static/manifest.webmanifest"; doc.head.appendChild(manifest);

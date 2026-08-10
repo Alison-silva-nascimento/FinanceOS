@@ -10,7 +10,10 @@ from services.cartoes_service import (
     calcular_kpis
 )
 from auth import exigir_login
-from database.db import fatura_cartao, fatura_cartao_mes, listar_bancos, pagar_fatura
+from database.db import (
+    fatura_cartao, fatura_cartao_mes, listar_bancos, listar_compras_cartao,
+    pagar_fatura,
+)
 
 # =====================================================
 # MODAL EDITAR
@@ -95,6 +98,26 @@ st.markdown("""
 
     top:-120px;
 
+}
+
+.credit-card::after{
+    content:"";
+    position:absolute;
+    z-index:0;
+    inset:0;
+    background:linear-gradient(115deg,rgba(3,10,22,.38),rgba(3,10,22,.12) 58%,rgba(3,10,22,.28));
+    pointer-events:none;
+}
+
+.credit-card > *{
+    position:relative;
+    z-index:1;
+}
+
+.credit-card .small,
+.credit-card .card-bank,
+.credit-card .info-line{
+    text-shadow:0 1px 3px rgba(0,0,0,.65);
 }
 
 .card-top{
@@ -698,14 +721,25 @@ st.markdown('<div class="cards-section"><div class="cards-section__icon">✅</di
 bancos = listar_bancos()
 if cartoes and bancos:
     opcoes_cartao = {f"{c['nome']} · limite {c['limite']:,.2f}": c["id"] for c in cartoes}
-    mes_fatura = st.text_input("Competência da fatura", value=__import__('datetime').date.today().strftime('%Y-%m'))
     cartao_pagamento = st.selectbox("Cartão para pagamento", list(opcoes_cartao), key="cartao_pagamento")
-    valor_fatura = fatura_cartao_mes(opcoes_cartao[cartao_pagamento], mes_fatura)
+    cartao_pagamento_id = opcoes_cartao[cartao_pagamento]
+    mes_atual = __import__('datetime').date.today().strftime('%Y-%m')
+    competencias = {mes_atual}
+    for compra in listar_compras_cartao(cartao_pagamento_id):
+        competencia = str(compra["competencia"] or str(compra["data"])[:7])
+        if len(competencia) == 7 and competencia[4] == "-":
+            competencias.add(competencia)
+    competencias = sorted(competencias, reverse=True)
+    mes_fatura = st.selectbox(
+        "Competência da fatura", competencias,
+        index=competencias.index(mes_atual), key="competencia_pagamento",
+    )
+    valor_fatura = fatura_cartao_mes(cartao_pagamento_id, mes_fatura)
     conta_pagamento = st.selectbox("Pagar pela conta", [f"{b['nome']} · R$ {b['saldo']:,.2f}" for b in bancos])
     if st.button(f"Pagar fatura de R$ {valor_fatura:,.2f}", disabled=valor_fatura <= 0, use_container_width=True):
         try:
             banco_id = bancos[[f"{b['nome']} · R$ {b['saldo']:,.2f}" for b in bancos].index(conta_pagamento)]['id']
-            pagar_fatura(opcoes_cartao[cartao_pagamento], mes_fatura, banco_id, valor_fatura, str(__import__('datetime').date.today()))
+            pagar_fatura(cartao_pagamento_id, mes_fatura, banco_id, valor_fatura, str(__import__('datetime').date.today()))
             st.success("Fatura paga e saldo da conta atualizado."); st.rerun()
         except ValueError as erro: st.error(str(erro))
 

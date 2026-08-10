@@ -39,7 +39,7 @@ def importar_compras(compras, cartao_id, origem):
 
 aplicar_tema(); exigir_login()
 st.title("📥 Importar fatura")
-st.caption("Revise as compras antes de importar. Os arquivos são lidos localmente e não são armazenados.")
+st.caption("Revise as compras antes de importar. Os arquivos são processados temporariamente e não ficam armazenados.")
 cartoes = listar_cartoes()
 if not cartoes:
     st.info("Cadastre um cartão antes de importar uma fatura.")
