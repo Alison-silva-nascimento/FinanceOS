@@ -176,6 +176,51 @@ class TesteBancoTemporario(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.db.editar_compra_cartao(credito["id"], "2026-08-06", "Crédito corrigido", "Outros", 0, 1)
 
+    def test_pagamento_quita_competencia_e_nao_debita_duas_vezes(self):
+        conn = self.db.conectar()
+        conn.execute(
+            "INSERT INTO bancos(id,nome,banco,tipo,saldo,usuario_id) VALUES(1,'Conta','Banco','Corrente',1000,1)"
+        )
+        conn.commit()
+        conn.close()
+        # A compra ocorreu em julho, mas pertence à fatura com competência agosto.
+        self.db.adicionar_compra_cartao(
+            1, "2026-07-25", "Compra do ciclo", "Outros", 100, 1,
+            competencia="2026-08",
+        )
+        self.assertEqual(self.db.pagar_fatura(1, "2026-08", 1, 100, "2026-08-10"), 1)
+        compra = self.db.listar_compras_cartao(1)[0]
+        self.assertEqual(compra["paga"], 1)
+        self.assertEqual(self.db.obter_banco(1)["saldo"], 900)
+        self.assertEqual(self.db.fatura_cartao(1, "2026-08"), 0)
+        with self.assertRaisesRegex(ValueError, "já foi paga"):
+            self.db.pagar_fatura(1, "2026-08", 1, 100, "2026-08-10")
+        self.assertEqual(self.db.obter_banco(1)["saldo"], 900)
+
+    def test_migracao_soma_resumos_e_ignora_operacao_sem_compras(self):
+        conn = self.db.conectar()
+        conn.execute(
+            "INSERT INTO cartoes(id,nome,banco,bandeira,limite,fechamento,vencimento,usuario_id) "
+            "VALUES(2,'Destino','Banco','Visa',1000,1,10,1)"
+        )
+        conn.commit()
+        conn.close()
+        self.db.adicionar_compra_cartao(
+            1, "2026-08-20", "Compra a migrar", "Outros", 100, 1,
+            competencia="2026-09",
+        )
+        self.db.salvar_resumo_fatura(1, "2026-09", 100, "Origem")
+        self.db.salvar_resumo_fatura(2, "2026-09", 200, "Destino")
+        self.assertEqual(self.db.migrar_compras_cartao(1, 2, "2026-09"), 1)
+        self.assertEqual(self.db.obter_resumo_fatura(2, "2026-09")["total_a_pagar"], 300)
+        self.assertIsNone(self.db.obter_resumo_fatura(1, "2026-09"))
+
+        self.db.salvar_resumo_fatura(1, "2026-10", 50, "Origem")
+        self.db.salvar_resumo_fatura(2, "2026-10", 80, "Destino")
+        self.assertEqual(self.db.migrar_compras_cartao(1, 2, "2026-10"), 0)
+        self.assertEqual(self.db.obter_resumo_fatura(1, "2026-10")["total_a_pagar"], 50)
+        self.assertEqual(self.db.obter_resumo_fatura(2, "2026-10")["total_a_pagar"], 80)
+
     def test_recorrencia_nao_duplica_no_mes(self):
         self.db.adicionar_recorrencia("Despesa", "Celular", "Fatura Claro", 72, 5)
         self.assertEqual(self.db.gerar_recorrencias("2026-08"), 1)

@@ -517,26 +517,63 @@ def editar_compra_cartao(registro_id, data, descricao, categoria, valor, parcela
         conn.close()
 
 def migrar_compras_cartao(cartao_origem_id, cartao_destino_id, competencia):
-    """Move uma fatura para outro cartão, sempre dentro do mesmo usuário."""
+    """Move uma fatura e soma seu resumo ao destino sem apagar valores existentes."""
     usuario_id = _usuario_atual()
     if cartao_origem_id == cartao_destino_id:
         raise ValueError("Escolha cartões diferentes para migrar a fatura.")
     conn = conectar()
-    destino = conn.execute("SELECT id FROM cartoes WHERE id=? AND usuario_id=?", (cartao_destino_id, usuario_id)).fetchone()
-    if not destino:
-        conn.close(); raise ValueError("Cartão de destino inválido.")
-    cursor = conn.execute("UPDATE compras_cartao SET cartao_id=? WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_destino_id, cartao_origem_id, competencia, usuario_id))
-    resumo = conn.execute("SELECT total_a_pagar, origem FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_origem_id, competencia, usuario_id)).fetchone()
-    if resumo:
-        conn.execute("""INSERT INTO faturas_resumo(cartao_id,competencia,total_a_pagar,origem,usuario_id)
-                        VALUES(?,?,?,?,?)
-                        ON CONFLICT(cartao_id,competencia,usuario_id)
-                        DO UPDATE SET total_a_pagar=excluded.total_a_pagar, origem=excluded.origem,
-                                      atualizado_em=CURRENT_TIMESTAMP""",
-                     (cartao_destino_id, competencia, resumo["total_a_pagar"], resumo["origem"], usuario_id))
-        conn.execute("DELETE FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?", (cartao_origem_id, competencia, usuario_id))
-    conn.commit(); conn.close()
-    return cursor.rowcount
+    try:
+        origem = conn.execute(
+            "SELECT id FROM cartoes WHERE id=? AND usuario_id=?",
+            (cartao_origem_id, usuario_id),
+        ).fetchone()
+        destino = conn.execute(
+            "SELECT id FROM cartoes WHERE id=? AND usuario_id=?",
+            (cartao_destino_id, usuario_id),
+        ).fetchone()
+        if not origem or not destino:
+            raise ValueError("Cartão de origem ou destino inválido.")
+        cursor = conn.execute(
+            "UPDATE compras_cartao SET cartao_id=? WHERE cartao_id=? AND competencia=? AND usuario_id=?",
+            (cartao_destino_id, cartao_origem_id, competencia, usuario_id),
+        )
+        movidas = cursor.rowcount
+        # Um resumo sem compras não representa uma fatura migrável e não deve
+        # substituir silenciosamente um resumo válido no cartão de destino.
+        if not movidas:
+            conn.commit()
+            return 0
+        resumo = conn.execute(
+            "SELECT total_a_pagar, origem FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?",
+            (cartao_origem_id, competencia, usuario_id),
+        ).fetchone()
+        if resumo:
+            resumo_destino = conn.execute(
+                "SELECT id FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?",
+                (cartao_destino_id, competencia, usuario_id),
+            ).fetchone()
+            if resumo_destino:
+                conn.execute("""
+                    UPDATE faturas_resumo
+                       SET total_a_pagar=total_a_pagar+?, atualizado_em=CURRENT_TIMESTAMP
+                     WHERE id=? AND usuario_id=?
+                """, (resumo["total_a_pagar"], resumo_destino["id"], usuario_id))
+            else:
+                conn.execute("""
+                    INSERT INTO faturas_resumo(cartao_id,competencia,total_a_pagar,origem,usuario_id)
+                    VALUES(?,?,?,?,?)
+                """, (cartao_destino_id, competencia, resumo["total_a_pagar"], resumo["origem"], usuario_id))
+            conn.execute(
+                "DELETE FROM faturas_resumo WHERE cartao_id=? AND competencia=? AND usuario_id=?",
+                (cartao_origem_id, competencia, usuario_id),
+            )
+        conn.commit()
+        return movidas
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def listar_duplicatas_compra_cartao(cartao_id, competencia):
@@ -624,13 +661,45 @@ def obter_resumo_fatura(cartao_id, competencia):
     conn.close(); return resumo
 
 def pagar_fatura(cartao_id, mes, banco_id, valor, pago_em):
-    usuario_id = _usuario_atual(); conn = conectar()
-    banco = conn.execute("SELECT saldo FROM bancos WHERE id=? AND usuario_id=?", (banco_id, usuario_id)).fetchone()
-    if not banco or valor <= 0 or banco["saldo"] < valor: conn.close(); raise ValueError("Conta inválida ou saldo insuficiente.")
-    conn.execute("UPDATE bancos SET saldo=saldo-? WHERE id=? AND usuario_id=?", (valor, banco_id, usuario_id))
-    conn.execute("INSERT INTO faturas_pagas(cartao_id,competencia,banco_id,valor,pago_em,usuario_id) VALUES(?,?,?,?,?,?) ON CONFLICT(cartao_id,competencia,usuario_id) DO UPDATE SET banco_id=excluded.banco_id,valor=excluded.valor,pago_em=excluded.pago_em", (cartao_id,mes,banco_id,valor,pago_em,usuario_id))
-    conn.execute("UPDATE compras_cartao SET paga=1 WHERE cartao_id=? AND usuario_id=? AND data LIKE ?", (cartao_id,usuario_id,f"{mes}%"))
-    conn.commit(); conn.close()
+    """Quita uma competência uma única vez e debita a conta atomicamente."""
+    usuario_id = _usuario_atual()
+    valor = float(valor)
+    if valor <= 0:
+        raise ValueError("O valor da fatura deve ser maior que zero.")
+    conn = conectar()
+    try:
+        cartao = conn.execute(
+            "SELECT id FROM cartoes WHERE id=? AND usuario_id=?", (cartao_id, usuario_id)
+        ).fetchone()
+        if not cartao:
+            raise ValueError("Cartão inválido.")
+        pagamento = conn.execute(
+            "SELECT id FROM faturas_pagas WHERE cartao_id=? AND competencia=? AND usuario_id=?",
+            (cartao_id, mes, usuario_id),
+        ).fetchone()
+        if pagamento:
+            raise ValueError("Esta fatura já foi paga.")
+        debito = conn.execute(
+            "UPDATE bancos SET saldo=saldo-? WHERE id=? AND usuario_id=? AND saldo>=?",
+            (valor, banco_id, usuario_id, valor),
+        )
+        if debito.rowcount != 1:
+            raise ValueError("Conta inválida ou saldo insuficiente.")
+        conn.execute("""
+            INSERT INTO faturas_pagas(cartao_id,competencia,banco_id,valor,pago_em,usuario_id)
+            VALUES(?,?,?,?,?,?)
+        """, (cartao_id, mes, banco_id, valor, pago_em, usuario_id))
+        quitadas = conn.execute("""
+            UPDATE compras_cartao SET paga=1
+             WHERE cartao_id=? AND competencia=? AND usuario_id=? AND paga=0
+        """, (cartao_id, mes, usuario_id)).rowcount
+        conn.commit()
+        return quitadas
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 # Contas e transferências
