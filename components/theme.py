@@ -344,6 +344,81 @@ def aplicar_tema():
             background:linear-gradient(135deg,rgba(20,36,59,.88),rgba(11,24,41,.88)) !important;
         }
 
+        /* Navegação principal horizontal: somente desktop web. */
+        .st-key-desktop-nav { display:none; }
+        @media (min-width:769px) {
+            [data-testid="stSidebar"],
+            [data-testid="collapsedControl"] { display:none !important; }
+            [data-testid="stMainBlockContainer"] {
+                width:calc(100% - 3rem) !important;
+                max-width:1360px !important;
+                padding-top:1rem !important;
+            }
+            .st-key-desktop-nav {
+                display:block;
+                position:sticky;
+                z-index:900;
+                top:.5rem;
+                margin:0 0 1.35rem;
+                padding:.42rem .52rem;
+                border:1px solid var(--fos-line);
+                border-radius:13px;
+                background:rgba(8,20,35,.90);
+                box-shadow:0 16px 38px rgba(0,5,15,.24);
+                backdrop-filter:blur(18px);
+            }
+            .st-key-desktop-nav [data-testid="stHorizontalBlock"] {
+                align-items:center;
+                gap:.28rem !important;
+            }
+            .st-key-desktop-nav [data-testid="stColumn"],
+            .st-key-desktop-nav [data-testid="column"] { min-width:0; }
+            .st-key-desktop-nav .financeos-nav-brand {
+                display:flex;
+                align-items:center;
+                min-height:2.35rem;
+                padding:0 .65rem;
+                color:#f8fafc;
+                font-size:.9rem;
+                font-weight:800;
+                letter-spacing:-.02em;
+                white-space:nowrap;
+            }
+            .st-key-desktop-nav .financeos-nav-brand span {
+                margin-right:.42rem;
+                color:var(--fos-cyan);
+            }
+            .st-key-desktop-nav [data-testid="stPageLink"] a,
+            .st-key-desktop-nav [data-testid="stPopover"] > button {
+                justify-content:center;
+                width:100%;
+                min-height:2.35rem !important;
+                padding:.38rem .55rem !important;
+                border:1px solid transparent !important;
+                border-radius:8px !important;
+                background:transparent !important;
+                box-shadow:none !important;
+                color:#b8c7da !important;
+                font-size:.76rem !important;
+                font-weight:680 !important;
+                white-space:nowrap;
+            }
+            .st-key-desktop-nav [data-testid="stPageLink"] a:hover,
+            .st-key-desktop-nav [data-testid="stPopover"] > button:hover {
+                transform:none !important;
+                border-color:rgba(56,189,248,.20) !important;
+                background:rgba(56,189,248,.08) !important;
+                color:#fff !important;
+            }
+            .st-key-desktop-nav [data-testid="stPageLink"] a[aria-current="page"] {
+                border-color:rgba(56,189,248,.36) !important;
+                background:linear-gradient(100deg,rgba(37,99,235,.34),rgba(8,145,178,.22)) !important;
+                color:#fff !important;
+                box-shadow:inset 0 -2px 0 var(--fos-cyan) !important;
+            }
+            .st-key-desktop-nav [data-testid="stPopover"] { width:100%; }
+        }
+
         @media (max-width:768px) {
             [data-testid="stMainBlockContainer"] { padding-top:calc(7rem + env(safe-area-inset-top)) !important; }
             [data-testid="stMetric"],.finance-kpi { min-height:94px; border-radius:11px; }
@@ -362,9 +437,59 @@ def aplicar_tema():
             unsafe_allow_html=True,
         )
     _renderizar_cabecalho_usuario()
+    _renderizar_navegacao_desktop()
     _renderizar_navegacao_mobile()
     _renderizar_barra_inferior_mobile()
     _renderizar_sessao_sidebar()
+
+
+def _renderizar_navegacao_desktop():
+    """Barra agrupada no topo; o CSS a mantém invisível em telas móveis."""
+    if not st.session_state.get("logado"):
+        return
+    usuario_admin = str(st.session_state.get("usuario", "")).strip().lower() == ADMIN_USER
+    with st.container(key="desktop-nav"):
+        marca, inicio, dashboard, movimentacoes, cartoes, planejamento, relatorios, mais = st.columns(
+            [1.35, .72, .88, 1.12, .78, 1.05, .88, .68]
+        )
+        with marca:
+            st.markdown('<div class="financeos-nav-brand"><span>◆</span> FinanceOS</div>', unsafe_allow_html=True)
+        with inicio:
+            st.page_link("app.py", label="Início", use_container_width=True)
+        with dashboard:
+            st.page_link("pages/01_Dashboard.py", label="Dashboard", use_container_width=True)
+        with movimentacoes:
+            with st.popover("Movimentações", use_container_width=True):
+                st.page_link("pages/02_Receitas.py", label="Receitas", icon="💰", use_container_width=True)
+                st.page_link("pages/03_Despesas.py", label="Despesas", icon="💸", use_container_width=True)
+                st.page_link("pages/11_Transferencias.py", label="Transferências", icon="↔️", use_container_width=True)
+                st.page_link("pages/13_Conciliação.py", label="Conciliação", icon="✅", use_container_width=True)
+        with cartoes:
+            with st.popover("Cartões", use_container_width=True):
+                st.page_link("pages/04_Cartoes.py", label="Cartões", icon="💳", use_container_width=True)
+                st.page_link("pages/04_Controle_de_gastos.py", label="Controle de gastos", icon="🎯", use_container_width=True)
+                st.page_link("pages/04_Importar_fatura.py", label="Importar fatura", icon="📥", use_container_width=True)
+        with planejamento:
+            with st.popover("Planejamento", use_container_width=True):
+                st.page_link("pages/05_Bancos.py", label="Bancos", icon="🏦", use_container_width=True)
+                st.page_link("pages/06_Patrimonio.py", label="Patrimônio", icon="🏠", use_container_width=True)
+                st.page_link("pages/07_Metas.py", label="Metas", icon="🎯", use_container_width=True)
+                st.page_link("pages/09_Orcamentos.py", label="Orçamentos", icon="📋", use_container_width=True)
+                st.page_link("pages/10_Recorrencias.py", label="Recorrências", icon="🔁", use_container_width=True)
+        with relatorios:
+            st.page_link("pages/14_Relatórios.py", label="Relatórios", use_container_width=True)
+        with mais:
+            with st.popover("Mais", use_container_width=True):
+                st.page_link("pages/12_Holerite.py", label="Holerite", icon="📄", use_container_width=True)
+                st.page_link("pages/16_Central_Financeira.py", label="Central financeira", icon="🧭", use_container_width=True)
+                st.page_link("pages/08_Configuracoes.py", label="Configurações", icon="⚙️", use_container_width=True)
+                st.page_link("pages/00_👤_Perfil.py", label="Meu perfil", icon="👤", use_container_width=True)
+                if usuario_admin:
+                    st.page_link("pages/15_Admin.py", label="Administração", icon="🛡️", use_container_width=True)
+                st.divider()
+                if st.button("Sair da conta", use_container_width=True, key="sair_desktop"):
+                    st.session_state.clear()
+                    st.rerun()
 
 
 def _configurar_navegador():
