@@ -5,7 +5,13 @@ conhecer o banco em uso. A URL nunca é registrada em código ou no Git.
 """
 
 import re
+import threading
 
+
+_POOL_LOCK = threading.Lock()
+_POOLS = {}
+_ESQUEMA_LOCK = threading.Lock()
+_ESQUEMAS_INICIALIZADOS = set()
 
 def _sql_postgres(sql):
     """Converte para PostgreSQL os trechos SQLite usados pela aplicação."""
@@ -54,8 +60,10 @@ class CursorPostgres:
 
 
 class ConexaoPostgres:
-    def __init__(self, conexao):
+    def __init__(self, conexao, pool):
         self._conexao = conexao
+        self._pool = pool
+        self._fechada = False
 
     def cursor(self):
         return CursorPostgres(self._conexao.cursor())
@@ -70,16 +78,34 @@ class ConexaoPostgres:
         self._conexao.rollback()
 
     def close(self):
-        self._conexao.close()
+        if self._fechada:
+            return
+        try:
+            self._pool.putconn(self._conexao)
+        finally:
+            self._fechada = True
+
+
+def _obter_pool(database_url):
+    try:
+        from psycopg.rows import dict_row
+        from psycopg_pool import ConnectionPool
+    except ImportError as erro:
+        raise RuntimeError("PostgreSQL não está disponível. Instale as dependências do FinanceOS.") from erro
+    with _POOL_LOCK:
+        pool = _POOLS.get(database_url)
+        if pool is None:
+            pool = ConnectionPool(
+                conninfo=database_url, min_size=0, max_size=4, timeout=10,
+                kwargs={"row_factory": dict_row, "connect_timeout": 10},
+            )
+            _POOLS[database_url] = pool
+        return pool
 
 
 def conectar_postgres(database_url):
-    try:
-        import psycopg
-        from psycopg.rows import dict_row
-    except ImportError as erro:
-        raise RuntimeError("PostgreSQL não está disponível. Instale as dependências do FinanceOS.") from erro
-    return ConexaoPostgres(psycopg.connect(database_url, row_factory=dict_row, connect_timeout=10))
+    pool = _obter_pool(database_url)
+    return ConexaoPostgres(pool.getconn(), pool)
 
 
 _AGORA_TEXTO = "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::text"
@@ -167,19 +193,25 @@ _ESQUEMA = (
 
 
 def criar_esquema_postgres(database_url, usuario_admin):
-    """Inicializa o esquema de produção sem apagar qualquer dado existente."""
-    conexao = conectar_postgres(database_url)
-    try:
-        for sql in _ESQUEMA:
-            conexao.execute(sql)
-        conexao.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (usuario_admin,))
-        conexao.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (usuario_admin,))
-        conexao.commit()
-    except Exception:
-        conexao.rollback()
-        raise
-    finally:
-        conexao.close()
+    """Inicializa o esquema somente uma vez por processo da aplicação."""
+    pool = _obter_pool(database_url)
+    chave = (id(pool), usuario_admin)
+    with _ESQUEMA_LOCK:
+        if chave in _ESQUEMAS_INICIALIZADOS:
+            return
+        conexao = conectar_postgres(database_url)
+        try:
+            for sql in _ESQUEMA:
+                conexao.execute(sql)
+            conexao.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (usuario_admin,))
+            conexao.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (usuario_admin,))
+            conexao.commit()
+            _ESQUEMAS_INICIALIZADOS.add(chave)
+        except Exception:
+            conexao.rollback()
+            raise
+        finally:
+            conexao.close()
 
 
 TABELAS_MIGRAVEIS = (

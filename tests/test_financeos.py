@@ -8,6 +8,9 @@ from unittest.mock import patch
 
 # Diretório exclusivo por execução: o banco aplica ACLs no Windows e um
 # diretório reaproveitado pode ficar indisponível para o processo seguinte.
+# A suíte jamais deve herdar a conexão remota usada por uma migração manual.
+os.environ.pop("DATABASE_URL", None)
+
 BOOTSTRAP_DIR = Path(tempfile.mkdtemp(prefix="financeos-test-"))
 os.environ["FINANCEOS_DB_FILE"] = str(BOOTSTRAP_DIR / "bootstrap.db")
 os.environ["FINANCEOS_BACKUP_DIR"] = str(BOOTSTRAP_DIR / "backups")
