@@ -4,7 +4,8 @@ import streamlit as st
 from auth import exigir_login
 from components.formatadores import moeda
 from components.theme import aplicar_tema
-from database.db import (editar_categoria_compra, listar_cartoes, listar_compras_cartao,
+from database.db import (adicionar_compra_cartao, editar_categoria_compra,
+                         listar_cartoes, listar_compras_cartao,
                          listar_duplicatas_compra_cartao, migrar_compras_cartao,
                          registrar_evento, remover_duplicatas_compra_cartao,
                          remover_faturas_cartao)
@@ -74,12 +75,12 @@ c.metric("Limite usado", f"{total_a_pagar/limite:.0%}" if limite else "—")
 d.metric("Compras", len(abertas))
 if resumo_fatura and abs(total_a_pagar - total) > 0.02:
     st.caption(f"Inclui {moeda(total_a_pagar - total)} de ajustes financeiros da fatura (saldo anterior, renegociação, créditos ou encargos), sem misturar esse valor às categorias de gastos.")
+categorias = ["Alimentação","Assinaturas","Compras","Saúde","Transporte","Moradia","Lazer","Outros"]
 if abertas:
     df = pd.DataFrame([dict(x) for x in abertas]); df['parcela'] = df['valor']/df['parcelas']
     x,y = st.columns(2); x.plotly_chart(px.pie(df,names='categoria',values='parcela',hole=.58),use_container_width=True); y.plotly_chart(px.bar(df.groupby('categoria',as_index=False)['parcela'].sum(),x='categoria',y='parcela'),use_container_width=True)
     with st.expander(f"🧾 Ver gastos da fatura · {len(abertas)} compra(s)", expanded=False):
         st.caption("Abra para consultar os gastos e, se necessário, corrigir a categoria de cada compra.")
-        categorias = ["Alimentação","Assinaturas","Compras","Saúde","Transporte","Moradia","Lazer","Outros"]
         if st.button("Salvar todas as categorias", type="primary", key=f"salvar_todas_{cartao_atual['id']}_{competencia}"):
             alteradas = 0
             for compra in abertas:
@@ -95,3 +96,22 @@ if abertas:
         for compra in abertas:
             a,b,c = st.columns([5,2,1]); a.write(f"{compra['descricao']} · {moeda(compra['valor']/compra['parcelas'])}"); nova = b.selectbox("Categoria",categorias,index=categorias.index(compra['categoria']) if compra['categoria'] in categorias else len(categorias)-1,key=f"cat_{compra['id']}")
             if c.button("Salvar",key=f"salvar_{compra['id']}"): editar_categoria_compra(compra['id'],nova); st.rerun()
+
+with st.expander("➕ Adicionar compra nesta fatura", expanded=False):
+    st.caption(f"O lançamento será incluído em {cartao_atual['nome']} · fatura {competencia[5:7]}/{competencia[:4]}.")
+    with st.form(f"nova_compra_controle_{cartao_atual['id']}_{competencia}", clear_on_submit=True):
+        data_compra = st.date_input("Data da compra")
+        descricao_compra = st.text_input("Descrição da compra")
+        a,b,c = st.columns(3)
+        categoria_compra = a.selectbox("Categoria", categorias, index=len(categorias)-1)
+        valor_compra = b.number_input("Valor total", min_value=0.01, step=10.0)
+        parcelas = c.number_input("Parcelas", min_value=1, max_value=48, value=1)
+        salvar_compra = st.form_submit_button("Adicionar compra", type="primary", use_container_width=True)
+    if salvar_compra:
+        if not descricao_compra.strip():
+            st.error("Informe a descrição da compra.")
+        else:
+            adicionar_compra_cartao(cartao_atual['id'], str(data_compra), descricao_compra.strip(), categoria_compra, valor_compra, parcelas, competencia=competencia)
+            registrar_evento(st.session_state['usuario_id'], "Compra manual adicionada", f"{descricao_compra.strip()} · {moeda(valor_compra)} · fatura {competencia}")
+            st.success("Compra adicionada à fatura.")
+            st.rerun()

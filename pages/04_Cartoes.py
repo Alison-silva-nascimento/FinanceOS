@@ -10,7 +10,7 @@ from services.cartoes_service import (
     calcular_kpis
 )
 from auth import exigir_login
-from database.db import adicionar_compra_cartao, fatura_cartao, fatura_cartao_mes, listar_bancos, listar_compras_cartao, pagar_fatura
+from database.db import fatura_cartao, fatura_cartao_mes, listar_bancos, pagar_fatura
 
 # =====================================================
 # MODAL EDITAR
@@ -694,26 +694,10 @@ R$ {cartao["limite"]:,.2f}
                  st.rerun()
 
 st.divider()
-st.markdown('<div class="cards-section"><div class="cards-section__icon">🧾</div><div><div class="cards-section__title">Compras e faturas</div><div class="cards-section__text">Registre compras ou consulte cada fatura em aberto.</div></div></div>', unsafe_allow_html=True)
-if cartoes:
-    opcoes_cartao = {f"{c['nome']} · limite {c['limite']:,.2f}": c["id"] for c in cartoes}
-    with st.form("nova_compra_cartao", clear_on_submit=True):
-        cartao_escolhido = st.selectbox("Cartão", list(opcoes_cartao))
-        data_compra = st.date_input("Data da compra")
-        descricao_compra = st.text_input("Descrição da compra")
-        a,b,c = st.columns(3); categoria_compra=a.text_input("Categoria", value="Cartão"); valor_compra=b.number_input("Valor total", min_value=0.01, step=10.0); parcelas=c.number_input("Parcelas", min_value=1, max_value=48, value=1)
-        salvar_compra = st.form_submit_button("Adicionar compra", use_container_width=True)
-    if salvar_compra and descricao_compra.strip():
-        adicionar_compra_cartao(opcoes_cartao[cartao_escolhido], str(data_compra), descricao_compra.strip(), categoria_compra, valor_compra, parcelas); st.rerun()
-    for nome, id_cartao in opcoes_cartao.items():
-        compras = listar_compras_cartao(id_cartao)
-        if compras:
-            with st.expander(f"{nome} · fatura em aberto: R$ {fatura_cartao(id_cartao):,.2f}"):
-                for compra in compras: st.write(f"{compra['data']} · {compra['descricao']} — R$ {compra['valor']/compra['parcelas']:,.2f} ({compra['parcelas']}x)")
-
 st.markdown('<div class="cards-section"><div class="cards-section__icon">✅</div><div><div class="cards-section__title">Pagamento de fatura</div><div class="cards-section__text">Quite a fatura usando uma conta bancária cadastrada.</div></div></div>', unsafe_allow_html=True)
 bancos = listar_bancos()
 if cartoes and bancos:
+    opcoes_cartao = {f"{c['nome']} · limite {c['limite']:,.2f}": c["id"] for c in cartoes}
     mes_fatura = st.text_input("Competência da fatura", value=__import__('datetime').date.today().strftime('%Y-%m'))
     cartao_pagamento = st.selectbox("Cartão para pagamento", list(opcoes_cartao), key="cartao_pagamento")
     valor_fatura = fatura_cartao_mes(opcoes_cartao[cartao_pagamento], mes_fatura)
