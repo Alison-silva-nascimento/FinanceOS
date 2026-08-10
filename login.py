@@ -22,9 +22,9 @@ def tela_login():
 
         .stApp {
             background:
-                radial-gradient(circle at 15% 18%, rgba(37, 99, 235, .28), transparent 28rem),
-                radial-gradient(circle at 88% 80%, rgba(124, 58, 237, .22), transparent 26rem),
-                linear-gradient(135deg, #090f1f 0%, #0b1224 48%, #11142a 100%);
+                radial-gradient(42rem 30rem at -6% 35%, rgba(37, 99, 235, .19), transparent 68%),
+                radial-gradient(36rem 28rem at 106% 64%, rgba(20, 184, 166, .14), transparent 66%),
+                linear-gradient(180deg, #07111f 0%, #091321 100%);
         }
 
         [data-testid="stMainBlockContainer"] {
@@ -37,10 +37,10 @@ def tela_login():
             align-items: center;
             gap: .55rem;
             padding: .42rem .8rem;
-            border: 1px solid rgba(147, 197, 253, .32);
+            border: 1px solid rgba(56, 189, 248, .32);
             border-radius: 999px;
-            background: rgba(30, 64, 175, .20);
-            color: #bfdbfe;
+            background: rgba(14, 116, 144, .13);
+            color: #bae6fd;
             font-size: .78rem;
             font-weight: 700;
             letter-spacing: .04em;
@@ -57,7 +57,7 @@ def tela_login():
         }
 
         .login-title span {
-            color: #60a5fa;
+            color: #38bdf8;
         }
 
         .login-description {
@@ -71,10 +71,12 @@ def tela_login():
         div[data-testid="stForm"] {
             max-width: 540px;
             padding: 1.75rem !important;
-            border: 1px solid rgba(148, 163, 184, .26) !important;
-            border-radius: 22px !important;
-            background: rgba(15, 23, 42, .72) !important;
-            box-shadow: 0 25px 65px rgba(0, 0, 0, .32);
+            border: 1px solid rgba(125, 151, 184, .20) !important;
+            border-radius: 16px !important;
+            background:
+                radial-gradient(circle at 100% 0, rgba(56, 189, 248, .07), transparent 34%),
+                linear-gradient(145deg, rgba(17, 31, 52, .92), rgba(10, 22, 38, .92)) !important;
+            box-shadow: 0 24px 60px rgba(0, 5, 15, .34);
             backdrop-filter: blur(18px);
         }
 
@@ -86,25 +88,25 @@ def tela_login():
 
         div[data-testid="stForm"] input {
             min-height: 2.9rem;
-            border: 1px solid rgba(148, 163, 184, .25) !important;
-            border-radius: 10px !important;
-            background: rgba(30, 41, 59, .78) !important;
+            border: 1px solid rgba(125, 151, 184, .20) !important;
+            border-radius: 8px !important;
+            background: rgba(18, 36, 59, .86) !important;
             color: #f8fafc !important;
         }
 
         div[data-testid="stForm"] input:focus {
-            border-color: #60a5fa !important;
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, .18) !important;
+            border-color: rgba(56, 189, 248, .55) !important;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, .12) !important;
         }
 
         div[data-testid="stFormSubmitButton"] button {
             min-height: 2.9rem;
             border: 0 !important;
-            border-radius: 10px !important;
-            background: linear-gradient(100deg, #2563eb, #7c3aed) !important;
+            border-radius: 8px !important;
+            background: linear-gradient(105deg, #2563eb, #0284c7) !important;
             color: white !important;
             font-weight: 750 !important;
-            box-shadow: 0 10px 25px rgba(37, 99, 235, .28);
+            box-shadow: 0 10px 25px rgba(2, 132, 199, .24);
             transition: transform .2s ease, filter .2s ease;
         }
 
@@ -121,9 +123,39 @@ def tela_login():
             font-size: .8rem;
         }
 
+        div[data-baseweb="tab-list"] {
+            width: max-content;
+            max-width: 100%;
+            margin-bottom: .7rem;
+            padding: .24rem;
+            border: 1px solid rgba(125, 151, 184, .18);
+            border-radius: 999px;
+            background: rgba(15, 30, 50, .72);
+        }
+
+        button[data-baseweb="tab"] {
+            min-height: 2.1rem;
+            padding: .28rem .8rem;
+            border-radius: 999px;
+            color: #aebed1;
+            font-size: .8rem;
+        }
+
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background: linear-gradient(100deg, rgba(37, 99, 235, .88), rgba(8, 145, 178, .82));
+            color: #fff;
+        }
+
+        [data-testid="stAlert"] {
+            border: 1px solid rgba(125, 151, 184, .18);
+            border-radius: 10px;
+            background: rgba(18, 36, 59, .74);
+        }
+
         @media (max-width: 700px) {
             [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
-            div[data-testid="stForm"] { padding: 1.25rem !important; }
+            div[data-testid="stForm"] { padding: 1.25rem !important; border-radius: 14px !important; }
+            .login-trust { flex-wrap: wrap; gap: .45rem .75rem; }
         }
         </style>
         """,
@@ -168,7 +200,7 @@ def tela_login():
                         st.rerun()
                     st.error(mensagem) if not sucesso else None
             st.markdown(
-                '<div class="login-trust"><span>🔒 Senha protegida</span><span>•</span><span>Dados locais</span></div>',
+                '<div class="login-trust"><span>🔒 Senha protegida</span><span>•</span><span>Dados protegidos no Supabase</span></div>',
                 unsafe_allow_html=True,
             )
             return
@@ -220,6 +252,6 @@ def tela_login():
                     st.error(mensagem) if not sucesso else None
 
         st.markdown(
-            '<div class="login-trust"><span>🔒 Acesso protegido</span><span>•</span><span>Dados armazenados localmente</span></div>',
+            '<div class="login-trust"><span>🔒 Acesso protegido</span><span>•</span><span>Dados protegidos no Supabase</span></div>',
             unsafe_allow_html=True,
         )
