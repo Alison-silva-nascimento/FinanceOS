@@ -134,6 +134,11 @@ st.markdown("""
 .home-hero p { position:relative; z-index:1; margin: .35rem 0 0; color: #dbeafe; }
 .home-eyebrow { display: none; }
 .quick-link a { min-height: 86px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 650; border-radius: 14px; }
+.vencimento-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.55rem 0; padding:.9rem 1rem; border:1px solid rgba(148,163,184,.22); border-radius:14px; background:linear-gradient(135deg,rgba(30,41,59,.78),rgba(15,23,42,.72)); }
+.vencimento-card__date { display:inline-flex; align-items:center; margin-right:.55rem; padding:.2rem .45rem; border-radius:7px; background:rgba(37,99,235,.18); color:#bfdbfe; font-size:.78rem; font-weight:750; }
+.vencimento-card__title { color:#f8fafc; font-weight:750; }
+.vencimento-card__meta { margin-top:.22rem; color:#94a3b8; font-size:.79rem; }
+.vencimento-card__value { color:#fecaca; font-size:1.15rem; font-weight:800; white-space:nowrap; }
 @media (min-width: 701px) {
   .home-avatar { position: absolute; top: 50%; right: 16%; width: 150px; height: 150px; flex-basis: 150px; margin: 0; transform: translateY(-50%); border: 3px solid rgba(255,255,255,.78); outline: 5px solid rgba(96,165,250,.15); box-shadow: 0 0 0 10px rgba(139,92,246,.10), 0 16px 30px rgba(0,0,0,.3); }
 }
@@ -150,6 +155,7 @@ st.markdown("""
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child [data-testid="stMetricValue"],
   .st-key-home-kpis [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stMetricValue"] { font-size: clamp(1.85rem, 9vw, 2.35rem) !important; }
   .st-key-home-kpis [data-testid="stMetric"] { min-height: 98px; }
+  .vencimento-card { padding:.8rem .85rem; } .vencimento-card__value { font-size:1rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -194,8 +200,19 @@ with st.container(key="home-bottom"):
             st.info("Cadastre recorrências para receber avisos de vencimento.")
         else:
             for item in vencimentos[:4]:
-                st.write(f"**{item['data'].strftime('%d/%m')} · {item['descricao']}**")
-                st.caption(f"{item['categoria']} · {moeda(item['valor'])}")
+                st.markdown(
+                    f"""
+                    <article class="vencimento-card">
+                      <div>
+                        <span class="vencimento-card__date">{item['data'].strftime('%d/%m')}</span>
+                        <span class="vencimento-card__title">{escape(str(item['descricao']))}</span>
+                        <div class="vencimento-card__meta">{escape(str(item['categoria']))} · vence em {item['data'].strftime('%d/%m/%Y')}</div>
+                      </div>
+                      <div class="vencimento-card__value">{moeda(item['valor'])}</div>
+                    </article>
+                    """,
+                    unsafe_allow_html=True,
+                )
     with direita:
         st.subheader("✅ Próximo passo")
         if recorrencias_pendentes:
