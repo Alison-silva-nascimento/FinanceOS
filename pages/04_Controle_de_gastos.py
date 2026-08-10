@@ -5,6 +5,7 @@ from auth import exigir_login
 from components.formatadores import moeda
 from components.theme import aplicar_tema
 from database.db import (adicionar_compra_cartao, editar_categoria_compra,
+                         editar_compra_cartao,
                          listar_cartoes, listar_compras_cartao,
                          listar_duplicatas_compra_cartao, migrar_compras_cartao,
                          registrar_evento, remover_duplicatas_compra_cartao,
@@ -94,8 +95,29 @@ if abertas:
                 st.info("Não há alterações de categoria para salvar.")
             st.rerun()
         for compra in abertas:
-            a,b,c = st.columns([5,2,1]); a.write(f"{compra['descricao']} · {moeda(compra['valor']/compra['parcelas'])}"); nova = b.selectbox("Categoria",categorias,index=categorias.index(compra['categoria']) if compra['categoria'] in categorias else len(categorias)-1,key=f"cat_{compra['id']}")
+            a,b,c,d = st.columns([4,2,1,1])
+            a.write(f"{compra['descricao']} · {moeda(compra['valor']/compra['parcelas'])}")
+            nova = b.selectbox("Categoria",categorias,index=categorias.index(compra['categoria']) if compra['categoria'] in categorias else len(categorias)-1,key=f"cat_{compra['id']}")
             if c.button("Salvar",key=f"salvar_{compra['id']}"): editar_categoria_compra(compra['id'],nova); st.rerun()
+            with d.popover("Editar", use_container_width=True):
+                if compra["importacao_id"] is not None:
+                    st.caption("Item importado: somente a categoria pode ser alterada.")
+                else:
+                    with st.form(f"editar_compra_{compra['id']}"):
+                        data_editada = st.date_input("Data", value=pd.to_datetime(compra["data"]).date())
+                        descricao_editada = st.text_input("Descrição", value=compra["descricao"])
+                        categoria_editada = st.selectbox("Categoria", categorias, index=categorias.index(compra["categoria"]) if compra["categoria"] in categorias else len(categorias)-1)
+                        valor_editado = st.number_input("Valor total", min_value=0.01, value=float(compra["valor"]), step=10.0)
+                        parcelas_editadas = st.number_input("Parcelas", min_value=1, max_value=48, value=int(compra["parcelas"]))
+                        salvar_edicao = st.form_submit_button("Salvar alterações", type="primary", use_container_width=True)
+                    if salvar_edicao:
+                        try:
+                            editar_compra_cartao(compra["id"], str(data_editada), descricao_editada, categoria_editada, valor_editado, parcelas_editadas)
+                            registrar_evento(st.session_state['usuario_id'], "Compra manual editada", f"{descricao_editada.strip()} · {moeda(valor_editado)} · fatura {competencia}")
+                            st.toast("Compra atualizada.")
+                            st.rerun()
+                        except ValueError as erro:
+                            st.error(str(erro))
 
 with st.expander("➕ Adicionar compra nesta fatura", expanded=False):
     st.caption(f"O lançamento será incluído em {cartao_atual['nome']} · fatura {competencia[5:7]}/{competencia[:4]}.")

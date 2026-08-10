@@ -482,6 +482,40 @@ def fatura_cartao(cartao_id, competencia=None):
 def editar_categoria_compra(registro_id, categoria):
     usuario_id = _usuario_atual(); conn = conectar(); conn.execute("UPDATE compras_cartao SET categoria=? WHERE id=? AND usuario_id=?", (categoria,registro_id,usuario_id)); conn.commit(); conn.close()
 
+def editar_compra_cartao(registro_id, data, descricao, categoria, valor, parcelas):
+    """Edita uma compra manual e mantém o total oficial da fatura coerente."""
+    usuario_id = _usuario_atual()
+    valor = float(valor)
+    parcelas = int(parcelas)
+    if not descricao.strip():
+        raise ValueError("Informe a descrição da compra.")
+    if valor <= 0 or parcelas < 1:
+        raise ValueError("Informe valor e parcelas válidos.")
+    conn = conectar()
+    try:
+        atual = conn.execute("SELECT * FROM compras_cartao WHERE id=? AND usuario_id=?", (registro_id, usuario_id)).fetchone()
+        if not atual:
+            raise ValueError("Compra não encontrada.")
+        if atual["importacao_id"] is not None:
+            raise ValueError("Compras importadas não podem ter data ou valor alterados.")
+        valor_anterior_ciclo = float(atual["valor"]) / int(atual["parcelas"])
+        valor_novo_ciclo = valor / parcelas
+        parcela_atual = min(int(atual["parcela_atual"]), parcelas)
+        conn.execute("""
+            UPDATE compras_cartao
+               SET data=?, descricao=?, categoria=?, valor=?, parcelas=?, parcela_atual=?
+             WHERE id=? AND usuario_id=?
+        """, (str(data), descricao.strip(), categoria, valor, parcelas, parcela_atual, registro_id, usuario_id))
+        conn.execute("""
+            UPDATE faturas_resumo
+               SET total_a_pagar=total_a_pagar+?, atualizado_em=CURRENT_TIMESTAMP
+             WHERE cartao_id=? AND competencia=? AND usuario_id=?
+        """, (valor_novo_ciclo - valor_anterior_ciclo, atual["cartao_id"], atual["competencia"], usuario_id))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
 def migrar_compras_cartao(cartao_origem_id, cartao_destino_id, competencia):
     """Move uma fatura para outro cartão, sempre dentro do mesmo usuário."""
     usuario_id = _usuario_atual()
