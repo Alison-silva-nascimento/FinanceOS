@@ -198,6 +198,159 @@ def aplicar_tema():
         @media (display-mode:standalone) and (max-width:768px) {
             [data-testid="stHeader"] { padding-top:env(safe-area-inset-top); }
         }
+
+        /* FinanceOS 2026: acabamento inspirado em painéis financeiros profissionais. */
+        :root {
+            --fos-bg:#07111f;
+            --fos-panel:#101d31;
+            --fos-panel-2:#14243b;
+            --fos-line:rgba(125,151,184,.18);
+            --fos-line-active:rgba(56,189,248,.48);
+            --fos-cyan:#38bdf8;
+            --fos-blue:#3b82f6;
+            --fos-green:#34d399;
+            --fos-shadow:0 18px 42px rgba(0,5,15,.24);
+        }
+        .stApp {
+            background:
+                radial-gradient(44rem 30rem at -8% 52%,rgba(37,99,235,.14),transparent 68%),
+                radial-gradient(38rem 28rem at 106% 45%,rgba(20,184,166,.12),transparent 66%),
+                linear-gradient(180deg,#07111f 0%,#091321 100%);
+        }
+        [data-testid="stHeader"] {
+            background:linear-gradient(180deg,rgba(7,17,31,.94),rgba(7,17,31,.70));
+            backdrop-filter:blur(16px);
+            border-bottom:1px solid rgba(125,151,184,.07);
+        }
+        [data-testid="stMainBlockContainer"] { max-width:1360px; padding-top:1.75rem; }
+        h1 { font-size:clamp(1.8rem,3vw,2.55rem) !important; }
+        h2 { font-size:clamp(1.3rem,2vw,1.65rem) !important; }
+        h1,h2,h3 { text-wrap:balance; }
+
+        /* Navegação: mais compacta, com leitura de aplicativo em vez de site. */
+        [data-testid="stSidebar"] {
+            background:rgba(8,18,33,.94);
+            border-right:1px solid var(--fos-line);
+            box-shadow:12px 0 40px rgba(0,5,15,.12);
+        }
+        [data-testid="stSidebarNav"] a {
+            min-height:2.35rem;
+            margin:.08rem .55rem;
+            padding:.42rem .72rem;
+            border:1px solid transparent;
+            border-radius:9px;
+            font-size:.82rem;
+        }
+        [data-testid="stSidebarNav"] a:hover {
+            border-color:rgba(56,189,248,.18);
+            background:rgba(56,189,248,.08);
+            color:#f8fafc !important;
+        }
+        [data-testid="stSidebarNav"] a[aria-current="page"] {
+            border-color:rgba(56,189,248,.34);
+            background:linear-gradient(100deg,rgba(37,99,235,.28),rgba(14,165,233,.16));
+            box-shadow:inset 3px 0 0 var(--fos-cyan),0 8px 20px rgba(0,0,0,.12);
+        }
+
+        /* Superfícies e indicadores. */
+        [data-testid="stMetric"],.finance-kpi {
+            min-height:108px;
+            padding:1rem 1.1rem;
+            border-color:var(--fos-line) !important;
+            border-radius:13px;
+            background:linear-gradient(145deg,rgba(20,36,59,.92),rgba(12,25,43,.92));
+            box-shadow:var(--fos-shadow);
+        }
+        [data-testid="stMetric"]::after,.finance-kpi::after {
+            right:-3.5rem; bottom:-4.5rem; width:9rem; height:9rem;
+            background:radial-gradient(circle,rgba(56,189,248,.15),transparent 68%);
+        }
+        [data-testid="stMetricLabel"] { color:#9fb1c8; font-size:.78rem; }
+        [data-testid="stMetricValue"] { font-size:clamp(1.55rem,2.25vw,2.05rem); letter-spacing:-.04em; }
+        [data-testid="stMetricDelta"] { width:max-content; padding:.12rem .4rem; border-radius:999px; background:rgba(52,211,153,.10); }
+        [data-testid="stVerticalBlockBorderWrapper"],div[data-testid="stForm"],[data-testid="stExpander"] {
+            border-color:var(--fos-line) !important;
+            border-radius:13px !important;
+            background:linear-gradient(145deg,rgba(17,31,52,.88),rgba(10,22,38,.88)) !important;
+            box-shadow:var(--fos-shadow);
+        }
+        [data-testid="stExpander"] summary { min-height:2.55rem; padding:.32rem .65rem; font-size:.84rem; }
+
+        /* Controles compactos, estados claros e foco acessível. */
+        [data-baseweb="input"] > div,[data-baseweb="select"] > div,
+        [data-testid="stDateInput"] input,[data-testid="stTextArea"] textarea {
+            min-height:2.45rem;
+            border-color:var(--fos-line) !important;
+            border-radius:8px !important;
+            background:rgba(18,36,59,.86) !important;
+        }
+        [data-baseweb="input"] > div:focus-within,[data-baseweb="select"] > div:focus-within {
+            border-color:var(--fos-line-active) !important;
+            box-shadow:0 0 0 3px rgba(56,189,248,.10) !important;
+        }
+        [data-testid="stWidgetLabel"] p { color:#aebed1; font-size:.78rem; }
+        .stButton > button,[data-testid="stFormSubmitButton"] > button {
+            min-height:2.45rem;
+            border-color:rgba(56,189,248,.35) !important;
+            border-radius:8px !important;
+            background:linear-gradient(105deg,#2563eb,#0284c7) !important;
+            box-shadow:0 8px 22px rgba(2,132,199,.16);
+            font-size:.82rem;
+        }
+        .stButton > button[kind="secondary"] {
+            background:rgba(18,36,59,.82) !important;
+            box-shadow:none;
+        }
+        [data-testid="stPageLink"] a { border-radius:9px; background:rgba(18,36,59,.54); font-size:.84rem; }
+        [data-testid="stAlert"] { border-radius:9px; background:rgba(18,36,59,.68); }
+
+        /* Tabelas e gráficos recebem a mesma moldura visual. */
+        [data-testid="stDataFrame"],[data-testid="stTable"] {
+            border-color:var(--fos-line);
+            border-radius:11px;
+            background:rgba(8,20,35,.68);
+            box-shadow:var(--fos-shadow);
+        }
+        [data-testid="stPlotlyChart"] {
+            border-color:var(--fos-line);
+            border-radius:13px;
+            background:linear-gradient(145deg,rgba(12,25,43,.82),rgba(7,17,31,.72));
+            box-shadow:var(--fos-shadow);
+        }
+        div[data-baseweb="tab-list"] {
+            width:max-content;
+            max-width:100%;
+            padding:.25rem;
+            border:1px solid var(--fos-line);
+            border-radius:999px;
+            background:rgba(15,30,50,.76);
+            overflow-x:auto;
+        }
+        button[data-baseweb="tab"] { min-height:2rem; padding:.25rem .75rem; border-radius:999px; font-size:.78rem; }
+        button[data-baseweb="tab"][aria-selected="true"] { background:linear-gradient(100deg,#2563eb,#0891b2); color:white; }
+
+        /* Compatibilidade com os heróis já existentes no Início e Dashboard. */
+        .home-hero,.dashboard-hero,.saldo-card {
+            border-color:rgba(56,189,248,.25) !important;
+            border-radius:16px !important;
+            background:
+                radial-gradient(circle at 88% 20%,rgba(56,189,248,.16),transparent 28%),
+                linear-gradient(115deg,rgba(17,43,75,.98),rgba(19,37,64,.96) 55%,rgba(13,56,71,.88)) !important;
+            box-shadow:0 22px 55px rgba(0,5,15,.28) !important;
+        }
+        .vencimento-card {
+            border-color:var(--fos-line) !important;
+            border-radius:11px !important;
+            background:linear-gradient(135deg,rgba(20,36,59,.88),rgba(11,24,41,.88)) !important;
+        }
+
+        @media (max-width:768px) {
+            [data-testid="stMainBlockContainer"] { padding-top:calc(7rem + env(safe-area-inset-top)) !important; }
+            [data-testid="stMetric"],.finance-kpi { min-height:94px; border-radius:11px; }
+            div[data-baseweb="tab-list"] { width:100%; border-radius:11px; }
+            button[data-baseweb="tab"] { flex:1 0 auto; }
+            .home-hero,.dashboard-hero,.saldo-card { border-radius:14px !important; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
