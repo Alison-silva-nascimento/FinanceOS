@@ -21,6 +21,7 @@ from database.db import (
 
 from components.cards import kpi_card
 from components.formatadores import moeda
+from components.dashboard_analytics import render_dashboard_analytics
 from components.theme import aplicar_tema
 from auth import exigir_login
 
@@ -396,7 +397,9 @@ st.divider()
 # VISÃO FINANCEIRA
 # ======================================================
 
-st.subheader("📈 Visão Financeira")
+render_dashboard_analytics(receitas, despesas)
+
+st.subheader("📈 Balanço geral")
 
 col1, col2 = st.columns(2)
 
