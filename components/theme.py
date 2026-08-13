@@ -386,8 +386,8 @@ def aplicar_tema():
                 position:sticky;
                 z-index:900;
                 top:.5rem;
-                margin:0 0 1.35rem;
-                padding:.42rem .52rem;
+                margin:0 0 .1rem;
+                padding:.54rem .68rem;
                 border:1px solid var(--fos-line);
                 border-radius:13px;
                 background:rgba(8,20,35,.90);
@@ -404,10 +404,10 @@ def aplicar_tema():
                 display:flex;
                 align-items:center;
                 gap:.45rem;
-                min-height:2.35rem;
-                padding:0 .5rem;
+                min-height:2.9rem;
+                padding:0 .55rem;
                 color:#f8fafc;
-                font-size:.9rem;
+                font-size:1.06rem;
                 font-weight:800;
                 letter-spacing:-.02em;
                 white-space:nowrap;
@@ -428,9 +428,9 @@ def aplicar_tema():
                 display:flex;
                 align-items:center;
                 justify-content:center;
-                width:27px;
-                height:27px;
-                flex:0 0 27px;
+                width:34px;
+                height:34px;
+                flex:0 0 34px;
                 overflow:hidden;
                 border:1px solid rgba(56,189,248,.34);
                 border-radius:50%;
@@ -449,7 +449,7 @@ def aplicar_tema():
                 max-width:6.5rem;
                 overflow:hidden;
                 color:#b8c7da;
-                font-size:.72rem;
+                font-size:.86rem;
                 font-weight:700;
                 text-overflow:ellipsis;
                 white-space:nowrap;
@@ -458,14 +458,14 @@ def aplicar_tema():
             .st-key-desktop-nav [data-testid="stPopover"] > button {
                 justify-content:center;
                 width:100%;
-                min-height:2.35rem !important;
-                padding:.38rem .55rem !important;
+                min-height:2.9rem !important;
+                padding:.5rem .7rem !important;
                 border:1px solid transparent !important;
                 border-radius:8px !important;
                 background:transparent !important;
                 box-shadow:none !important;
                 color:#b8c7da !important;
-                font-size:.76rem !important;
+                font-size:.94rem !important;
                 font-weight:680 !important;
                 white-space:nowrap;
             }
@@ -491,6 +491,73 @@ def aplicar_tema():
             div[data-baseweb="tab-list"] { width:100%; border-radius:11px; }
             button[data-baseweb="tab"] { flex:1 0 auto; }
             .home-hero,.dashboard-hero,.saldo-card { border-radius:14px !important; }
+        }
+
+        /* Camada final do design system: estados, ritmo e acessibilidade. */
+        ::selection { background:rgba(56,189,248,.30); color:#fff; }
+        html { scroll-behavior:smooth; }
+        p { line-height:1.62; }
+        a { text-underline-offset:.18em; }
+        [data-testid="stMainBlockContainer"] > div { animation:fos-enter .32s ease-out both; }
+        @keyframes fos-enter {
+            from { opacity:0; transform:translateY(5px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .fos-empty {
+            display:flex;
+            align-items:center;
+            gap:.9rem;
+            min-height:92px;
+            padding:1rem 1.1rem;
+            border:1px dashed rgba(56,189,248,.28);
+            border-radius:12px;
+            background:linear-gradient(135deg,rgba(14,35,58,.66),rgba(8,22,39,.70));
+        }
+        .fos-empty__icon {
+            display:grid;
+            place-items:center;
+            width:42px;
+            height:42px;
+            flex:0 0 42px;
+            border:1px solid rgba(56,189,248,.24);
+            border-radius:12px;
+            background:rgba(56,189,248,.08);
+            font-size:1.2rem;
+        }
+        .fos-empty strong { color:#f8fafc; font-size:.94rem; }
+        .fos-empty p { margin:.2rem 0 0; color:#91a4bd; font-size:.82rem; }
+        .fos-section-heading { display:flex; align-items:flex-start; gap:.65rem; margin:1.9rem 0 .9rem; }
+        .fos-section-heading > span { color:var(--fos-cyan); line-height:1.4; }
+        .fos-section-heading h2 { margin:0 !important; font-size:clamp(1.2rem,2vw,1.55rem) !important; }
+        .fos-section-heading p { margin:.25rem 0 0; color:#91a4bd; font-size:.82rem; }
+        [data-testid="stStatusWidget"], [data-testid="stToast"] { border-radius:10px !important; }
+        [data-testid="stFileUploaderDropzone"] {
+            border:1px dashed rgba(56,189,248,.32) !important;
+            border-radius:11px !important;
+            background:rgba(14,35,58,.55) !important;
+        }
+        [data-testid="stProgress"] > div > div { background:linear-gradient(90deg,#2563eb,#22d3ee) !important; }
+        [data-testid="stDialog"] > div {
+            border:1px solid var(--fos-line) !important;
+            border-radius:16px !important;
+            background:linear-gradient(145deg,#101d31,#081625) !important;
+            box-shadow:0 28px 80px rgba(0,5,15,.55) !important;
+        }
+        [data-testid="stPopoverBody"] {
+            border:1px solid var(--fos-line) !important;
+            border-radius:11px !important;
+            background:rgba(8,20,35,.98) !important;
+            box-shadow:0 20px 50px rgba(0,5,15,.42) !important;
+        }
+        @media (max-width:768px) {
+            .fos-empty { min-height:82px; padding:.85rem; }
+            .fos-section-heading { margin:1.45rem 0 .75rem; }
+            [data-testid="stMainBlockContainer"] > div { animation-duration:.22s; }
+            [data-testid="stPlotlyChart"] .modebar { display:none !important; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+            html { scroll-behavior:auto; }
+            [data-testid="stMainBlockContainer"] > div { animation:none !important; }
         }
         </style>
         """,

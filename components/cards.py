@@ -1,3 +1,5 @@
+from html import escape
+
 import streamlit as st
 
 
@@ -11,8 +13,8 @@ def kpi_card(
     st.markdown(
         f"""
 <div class="finance-kpi" style="--accent:{cor};">
-  <div class="finance-kpi__title">{icone} &nbsp;{titulo}</div>
-  <div class="finance-kpi__value">{valor}</div>
+  <div class="finance-kpi__title">{escape(str(icone))} &nbsp;{escape(str(titulo))}</div>
+  <div class="finance-kpi__value">{escape(str(valor))}</div>
 </div>
 """,
         unsafe_allow_html=True,

@@ -203,8 +203,9 @@ def criar_esquema_postgres(database_url, usuario_admin):
         try:
             for sql in _ESQUEMA:
                 conexao.execute(sql)
-            conexao.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (usuario_admin,))
-            conexao.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (usuario_admin,))
+            if usuario_admin:
+                conexao.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (usuario_admin,))
+                conexao.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (usuario_admin,))
             conexao.commit()
             _ESQUEMAS_INICIALIZADOS.add(chave)
         except Exception:

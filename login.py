@@ -4,6 +4,7 @@ from pathlib import Path
 import streamlit as st
 
 from auth import autenticar, criar_usuario, login_bloqueado, possui_usuario, registrar_falha_login
+from config import ALLOW_REGISTRATION
 
 
 def _logo_financeos():
@@ -356,7 +357,11 @@ def tela_login():
             )
             return
 
-        aba_entrar, aba_cadastrar = st.tabs(["Entrar", "Cadastrar-se"])
+        if ALLOW_REGISTRATION:
+            aba_entrar, aba_cadastrar = st.tabs(["Entrar", "Cadastrar-se"])
+        else:
+            aba_entrar = st.container()
+            aba_cadastrar = None
         with aba_entrar:
             with st.form("login"):
                 usuario = st.text_input("Usuário", help="Formato: nome.sobrenome")
@@ -379,7 +384,8 @@ def tela_login():
                     else:
                         st.error("Usuário ou senha inválidos.")
 
-        with aba_cadastrar:
+        if aba_cadastrar is not None:
+          with aba_cadastrar:
             st.caption("Crie seu acesso. Suas receitas, despesas, cartões e relatórios ficarão separados dos demais usuários.")
             with st.form("cadastrar_usuario"):
                 nome_novo = st.text_input("Nome completo")

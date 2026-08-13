@@ -94,6 +94,8 @@ def criar_usuario(nome, usuario, senha):
     if not nome.strip() or not usuario.strip():
         return False, "Informe nome e usuário."
     usuario = usuario.strip()
+    if ADMIN_USER and usuario.lower() == ADMIN_USER and possui_usuario():
+        return False, "Este nome de usuário é reservado para a administração."
     valido, mensagem = _validar_usuario(usuario)
     if not valido:
         return False, mensagem
@@ -103,9 +105,13 @@ def criar_usuario(nome, usuario, senha):
 
     conn = conectar()
     try:
+        primeiro_usuario = conn.execute(
+            "SELECT COUNT(*) AS total FROM usuarios WHERE senha_hash IS NOT NULL AND senha_hash != ''"
+        ).fetchone()["total"] == 0
+        perfil_inicial = "admin" if primeiro_usuario and ADMIN_USER and usuario.lower() == ADMIN_USER else "usuario"
         cursor = conn.execute(
             "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
-            (nome.strip(), usuario, _gerar_hash(senha), "usuario"),
+            (nome.strip(), usuario, _gerar_hash(senha), perfil_inicial),
         )
         conn.commit()
         registrar_evento(cursor.lastrowid, "Conta criada")
@@ -179,10 +185,20 @@ def alterar_senha(usuario, senha_atual, nova_senha):
 
 
 def eh_admin():
-    """Apenas a conta proprietária pode acessar operações administrativas."""
+    """Valida identidade, id e perfil administrativo diretamente no banco."""
     try:
         import streamlit as st
-        return str(st.session_state.get("usuario", "")).strip().lower() == USUARIO_ADMIN
+        usuario = str(st.session_state.get("usuario", "")).strip().lower()
+        usuario_id = st.session_state.get("usuario_id")
+        if not ADMIN_USER or not usuario_id or usuario != ADMIN_USER:
+            return False
+        conn = conectar()
+        registro = conn.execute(
+            "SELECT id, usuario, perfil FROM usuarios WHERE id=? AND lower(usuario)=?",
+            (int(usuario_id), ADMIN_USER),
+        ).fetchone()
+        conn.close()
+        return bool(registro and str(registro["perfil"]).lower() == "admin")
     except Exception:
         return False
 

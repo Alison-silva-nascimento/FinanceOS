@@ -142,6 +142,7 @@ o banco SQLite será criado automaticamente em `database/finance.db`.
 | `FINANCEOS_DB_FILE` | Caminho do banco SQLite local |
 | `FINANCEOS_BACKUP_DIR` | Diretório dos backups SQLite |
 | `FINANCEOS_ADMIN_USER` | Usuário com perfil administrativo |
+| `FINANCEOS_ALLOW_REGISTRATION` | Libera novos cadastros após o primeiro acesso (`false` por padrão) |
 | `FINANCEOS_SESSION_TIMEOUT_MINUTES` | Tempo de inatividade antes do encerramento da sessão |
 
 Use o arquivo `.env.example` apenas como referência. Nunca versione `.env`,
@@ -154,8 +155,11 @@ do **Session pooler** do Supabase. Quando essa variável existe, o FinanceOS usa
 PostgreSQL; caso contrário, utiliza SQLite.
 
 As tabelas no schema `public` devem permanecer com **Row Level Security (RLS)**
-ativado e sem privilégios para os papéis `anon` e `authenticated`. O FinanceOS
-acessa o PostgreSQL pelo servidor Streamlit e não expõe a URI ao navegador.
+ativado e sem privilégios para os papéis `anon` e `authenticated`. Use uma role
+PostgreSQL exclusiva e sem privilégios de proprietário na `DATABASE_URL`. O
+FinanceOS também filtra os dados por `usuario_id` no servidor Streamlit; a URI
+não é enviada ao navegador. RLS só funciona como barreira adicional quando a
+role usada pela aplicação não possui `BYPASSRLS` e não é proprietária das tabelas.
 
 Para migrar dados existentes, consulte
 [docs/MIGRACAO_SUPABASE.md](docs/MIGRACAO_SUPABASE.md).
@@ -166,15 +170,26 @@ Para migrar dados existentes, consulte
 - Senhas protegidas com PBKDF2-HMAC-SHA256 e salt individual.
 - Bloqueio temporário após cinco tentativas de login sem sucesso.
 - Encerramento de sessões inativas.
-- Apenas `FINANCEOS_ADMIN_USER` recebe perfil administrativo.
-- RLS habilitado nas tabelas públicas do Supabase.
+- Administração exige simultaneamente a identidade configurada em
+  `FINANCEOS_ADMIN_USER`, o id da sessão e o perfil `admin` persistido no banco.
+- Cadastro de novas contas fechado por padrão em produção.
+- RLS habilitado nas tabelas públicas, com role de aplicação sem `BYPASSRLS`.
 - PDFs limitados a 10 MB e 50 páginas, com validação antes do processamento.
 - Imagens de perfil verificadas antes do armazenamento.
 - Script de release que bloqueia arquivos sensíveis rastreados pelo Git.
+- Auditoria do histórico Git para impedir publicação de bancos removidos apenas
+  do estado atual, mas ainda recuperáveis em commits antigos.
 
 > Este é um projeto de gestão financeira pessoal. Revise as configurações de
 > segurança, faça backups e proteja as credenciais antes de utilizar uma
 > instalação própria com dados reais.
+
+## Licença
+
+Código-fonte disponibilizado para visualização, avaliação educacional e
+apresentação de portfólio. Cópia, redistribuição, hospedagem, comercialização ou
+criação de trabalhos derivados exige autorização prévia do autor. Consulte
+[LICENSE](LICENSE).
 
 ## Docker
 

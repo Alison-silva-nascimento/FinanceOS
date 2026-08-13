@@ -152,9 +152,19 @@ def _exigir_admin():
     try:
         import streamlit as st
         usuario = str(st.session_state.get("usuario", "")).strip().lower()
+        usuario_id = st.session_state.get("usuario_id")
     except Exception:
         usuario = ""
-    if usuario != ADMIN_USER:
+        usuario_id = None
+    if not ADMIN_USER or not usuario_id or usuario != ADMIN_USER:
+        raise PermissionError("Acesso administrativo não autorizado.")
+    conn = conectar()
+    registro = conn.execute(
+        "SELECT perfil FROM usuarios WHERE id=? AND lower(usuario)=?",
+        (int(usuario_id), ADMIN_USER),
+    ).fetchone()
+    conn.close()
+    if not registro or str(registro["perfil"]).lower() != "admin":
         raise PermissionError("Acesso administrativo não autorizado.")
 
 
@@ -236,8 +246,9 @@ def criar_banco():
     if "sessao_versao" not in colunas_usuarios:
         cursor.execute("ALTER TABLE usuarios ADD COLUMN sessao_versao INTEGER NOT NULL DEFAULT 1")
     # Regra de administração do FinanceOS: a conta do proprietário é a única admin.
-    cursor.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (ADMIN_USER,))
-    cursor.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (ADMIN_USER,))
+    if ADMIN_USER:
+        cursor.execute("UPDATE usuarios SET perfil='usuario' WHERE lower(usuario) != ? AND perfil='admin'", (ADMIN_USER,))
+        cursor.execute("UPDATE usuarios SET perfil='admin' WHERE lower(usuario) = ?", (ADMIN_USER,))
     cursor.execute("""CREATE TABLE IF NOT EXISTS eventos_seguranca(
         id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER, acao TEXT NOT NULL,
         detalhes TEXT, criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")

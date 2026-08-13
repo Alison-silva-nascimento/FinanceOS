@@ -114,6 +114,11 @@ class TesteRegrasDeAcesso(unittest.TestCase):
         self.assertTrue(_validar_senha("SenhaForte#12")[0])
         self.assertFalse(_validar_senha("senhafraca")[0])
 
+    def test_administrador_nao_tem_identidade_padrao_publica(self):
+        import config
+
+        self.assertNotEqual(config.ADMIN_USER, "alison.nascimento")
+
 
 class TesteBancoTemporario(unittest.TestCase):
     def setUp(self):

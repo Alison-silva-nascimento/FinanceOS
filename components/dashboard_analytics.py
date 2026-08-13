@@ -2,6 +2,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from components.ui import estado_vazio
+
 
 def _frame_movimentos(itens, tipo):
     linhas = [
@@ -31,9 +33,11 @@ def _estilizar(fig, altura=315, legenda=False):
         showlegend=legenda,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         hoverlabel=dict(bgcolor="#0f1f35", font_color="#f8fafc"),
+        hovermode="closest",
+        separators=",.",
     )
-    fig.update_xaxes(gridcolor="rgba(148,163,184,.12)", linecolor="rgba(148,163,184,.18)")
-    fig.update_yaxes(gridcolor="rgba(148,163,184,.12)", linecolor="rgba(148,163,184,.18)")
+    fig.update_xaxes(gridcolor="rgba(148,163,184,.10)", linecolor="rgba(148,163,184,.18)", automargin=True)
+    fig.update_yaxes(gridcolor="rgba(148,163,184,.10)", linecolor="rgba(148,163,184,.18)", automargin=True)
     return fig
 
 
@@ -51,7 +55,7 @@ def render_dashboard_analytics(receitas, despesas):
         with st.container(border=True):
             st.markdown("#### 📈 Evolução diária")
             if movimentos.empty:
-                st.info("Ainda não há movimentações para formar a evolução diária.")
+                estado_vazio("Evolução ainda indisponível", "Registre receitas ou despesas para acompanhar o movimento diário.", "📈")
             else:
                 diario = movimentos.groupby(["Data", "Tipo"], as_index=False)["Valor"].sum()
                 fig = px.line(
@@ -61,38 +65,38 @@ def render_dashboard_analytics(receitas, despesas):
                 fig.update_traces(line=dict(width=3), marker=dict(size=7))
                 fig.update_xaxes(title=None, tickformat="%d/%m")
                 fig.update_yaxes(title=None, tickprefix="R$ ")
-                st.plotly_chart(_estilizar(fig, legenda=True), use_container_width=True)
+                st.plotly_chart(_estilizar(fig, legenda=True), use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
     with painel_b:
         with st.container(border=True):
             st.markdown("#### 🏆 Top 5 gastos")
             if df_despesas.empty:
-                st.info("Ainda não há despesas para identificar os maiores gastos.")
+                estado_vazio("Sem ranking de gastos", "Os cinco maiores gastos aparecerão após o primeiro lançamento.", "🏆")
             else:
                 top = df_despesas.groupby("Descrição", as_index=False)["Valor"].sum().nlargest(5, "Valor").sort_values("Valor")
                 fig = px.bar(top, x="Valor", y="Descrição", orientation="h", text_auto=".2s", color_discrete_sequence=["#7dd3fc"])
                 fig.update_xaxes(title=None, tickprefix="R$ ")
                 fig.update_yaxes(title=None)
                 fig.update_traces(textposition="outside", cliponaxis=False)
-                st.plotly_chart(_estilizar(fig), use_container_width=True)
+                st.plotly_chart(_estilizar(fig), use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
     painel_c, painel_d = st.columns(2)
     with painel_c:
         with st.container(border=True):
             st.markdown("#### 🍩 Despesas por categoria")
             if df_despesas.empty:
-                st.info("Ainda não há despesas para distribuir por categoria.")
+                estado_vazio("Sem categorias para comparar", "Categorize despesas para visualizar a distribuição do mês.", "🍩")
             else:
                 categorias = df_despesas.groupby("Categoria", as_index=False)["Valor"].sum()
                 fig = px.pie(categorias, names="Categoria", values="Valor", hole=.62, color_discrete_sequence=px.colors.sequential.Blues_r)
                 fig.update_traces(textposition="inside", textinfo="percent", sort=True)
-                st.plotly_chart(_estilizar(fig, legenda=True), use_container_width=True)
+                st.plotly_chart(_estilizar(fig, legenda=True), use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
     with painel_d:
         with st.container(border=True):
             st.markdown("#### 📅 Despesas por dia da semana")
             if df_despesas.empty:
-                st.info("Ainda não há despesas para comparar os dias da semana.")
+                estado_vazio("Sem histórico semanal", "As despesas serão agrupadas por dia da semana automaticamente.", "📅")
             else:
                 nomes = {0: "Segunda", 1: "Terça", 2: "Quarta", 3: "Quinta", 4: "Sexta", 5: "Sábado", 6: "Domingo"}
                 ordem = list(nomes.values())
@@ -103,4 +107,4 @@ def render_dashboard_analytics(receitas, despesas):
                 fig.update_xaxes(title=None)
                 fig.update_yaxes(title=None, tickprefix="R$ ")
                 fig.update_traces(textposition="outside", cliponaxis=False)
-                st.plotly_chart(_estilizar(fig), use_container_width=True)
+                st.plotly_chart(_estilizar(fig), use_container_width=True, config={"displayModeBar": False, "responsive": True})

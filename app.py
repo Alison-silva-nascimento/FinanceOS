@@ -125,8 +125,8 @@ avatar_usuario = avatar_hero(perfil_usuario["foto_perfil"] if perfil_usuario els
 
 st.markdown("""
 <style>
-.block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; padding-top: 2rem; }
-.home-hero { position: relative; overflow:hidden; padding: clamp(1.35rem, 2.5vw, 2rem); margin: .4rem 0 1.35rem; border: 1px solid rgba(96,165,250,.35); border-radius: 20px; background:linear-gradient(120deg,rgba(29,78,216,.52),rgba(67,56,202,.38) 56%,rgba(109,40,217,.32)); box-shadow:0 18px 42px rgba(0,0,0,.2); }
+.block-container, [data-testid="stMainBlockContainer"] { max-width: 1440px !important; }
+.home-hero { position: relative; overflow:hidden; padding: clamp(1.35rem, 2.5vw, 2rem); margin: 0 0 1.35rem; border: 1px solid rgba(96,165,250,.35); border-radius: 20px; background:linear-gradient(120deg,rgba(29,78,216,.52),rgba(67,56,202,.38) 56%,rgba(109,40,217,.32)); box-shadow:0 18px 42px rgba(0,0,0,.2); }
 .home-hero::after { content:""; position:absolute; width:15rem; height:15rem; right:-5rem; top:-8rem; border-radius:50%; background:rgba(191,219,254,.13); box-shadow:-4rem 8rem 0 rgba(167,139,250,.09); pointer-events:none; }
 .home-hero__top { position:relative; z-index:1; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .home-avatar { width: 84px; height: 84px; flex: 0 0 84px; border: 2px solid rgba(255,255,255,.62); border-radius: 50%; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }

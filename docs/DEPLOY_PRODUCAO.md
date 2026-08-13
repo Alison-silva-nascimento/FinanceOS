@@ -27,6 +27,8 @@ docker compose logs --tail=100 financeos
 Edite `.env` antes de iniciar. Informe o domínio real e o usuário administrador,
 que deve seguir o formato `nome.sobrenome`. O Caddy solicita e renova o
 certificado HTTPS automaticamente quando DNS e portas públicas estão corretos.
+Mantenha `FINANCEOS_ALLOW_REGISTRATION=false`; habilite-o somente durante uma
+janela controlada para criar uma nova conta e desative-o novamente em seguida.
 
 Antes do primeiro push, retire bancos e caches que tenham sido rastreados em
 commits antigos, sem apagar os arquivos locais:
@@ -37,6 +39,12 @@ git rm -r --cached components/__pycache__ database/__pycache__ services/__pycach
 python scripts/check_release.py
 ```
 
+`git rm --cached` não remove dados de commits anteriores. Se
+`scripts/check_git_history.py` encontrar um banco, preserve um backup privado e
+reescreva o histórico com `git filter-repo` antes de fazer o envio forçado. Essa
+operação altera os identificadores dos commits e deve ser coordenada com todos
+os clones do repositório.
+
 ## Primeiro acesso
 
 1. Abra `https://SEU_DOMINIO`.
@@ -44,6 +52,15 @@ python scripts/check_release.py
 3. Use uma senha única, preferencialmente gerada por um gerenciador de senhas.
 4. Confirme que a área Administração aparece somente nessa conta.
 5. Teste uma importação pequena, um backup manual e seu download.
+
+## PostgreSQL e RLS
+
+Não use a role proprietária do projeto na conexão diária da aplicação. Crie uma
+role exclusiva, sem `SUPERUSER`, `BYPASSRLS` ou propriedade das tabelas, conceda
+somente as operações necessárias e use sua URI em `DATABASE_URL`. Ativar RLS sem
+políticas compatíveis ou conectar como proprietário não cria isolamento efetivo.
+Os papéis públicos `anon` e `authenticated` não precisam de acesso direto porque
+o FinanceOS conversa com o PostgreSQL somente pelo servidor Streamlit.
 
 ## Persistência e escalabilidade
 
