@@ -1,5 +1,18 @@
 # FinanceOS
 
+## Visão geral
+
+<p align="center">
+  <img src="docs/screenshots/inicio-demo.png" alt="Tela inicial do FinanceOS com indicadores, ações rápidas e alertas" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard-resumo-demo.png" alt="Dashboard mensal do FinanceOS com resumo e projeção financeira" width="49%">
+  <img src="docs/screenshots/dashboard-analytics-demo.png" alt="Raio-X financeiro do FinanceOS com gráficos e análises do mês" width="49%">
+</p>
+
+<p align="center"><sub>Interface exibida com dados exclusivamente demonstrativos.</sub></p>
+
 > Plataforma web de gestão financeira pessoal construída com Python e Streamlit.
 
 O **FinanceOS** centraliza receitas, despesas, cartões, contas bancárias,
