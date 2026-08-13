@@ -164,6 +164,9 @@ role usada pela aplicação não possui `BYPASSRLS` e não é proprietária das 
 Para migrar dados existentes, consulte
 [docs/MIGRACAO_SUPABASE.md](docs/MIGRACAO_SUPABASE.md).
 
+Para exportação e restauração testada do PostgreSQL, consulte
+[docs/BACKUP_SUPABASE.md](docs/BACKUP_SUPABASE.md).
+
 ## Segurança e privacidade
 
 - Dados financeiros associados ao usuário autenticado.
@@ -179,6 +182,7 @@ Para migrar dados existentes, consulte
 - Script de release que bloqueia arquivos sensíveis rastreados pelo Git.
 - Auditoria do histórico Git para impedir publicação de bancos removidos apenas
   do estado atual, mas ainda recuperáveis em commits antigos.
+- CodeQL, Dependabot, testes e verificação de segredos automatizados pelo GitHub.
 
 > Este é um projeto de gestão financeira pessoal. Revise as configurações de
 > segurança, faça backups e proteja as credenciais antes de utilizar uma

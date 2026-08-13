@@ -6,6 +6,9 @@ __pycache__/
 SENHA DB SQLPOSTGRE SUPABASE.txt
 database/*.db
 backups/
+backups-postgres/
+*.dump
+*.dump.sha256
 .pytest_cache/
 work/
 *.log

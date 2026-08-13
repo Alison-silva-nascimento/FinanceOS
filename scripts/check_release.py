@@ -14,7 +14,9 @@ PADROES_SEGREDOS = ("supabase_service_role", "service_role_key")
 URI_COM_CREDENCIAL = re.compile(r"postgres(?:ql)?://[^\s:/]+:[^\s/@]+@[^\s/]+", re.IGNORECASE)
 OBRIGATORIOS = (
     "Dockerfile", "compose.yaml", ".dockerignore", ".env.example",
-    "deploy/Caddyfile", ".streamlit/config.toml",
+    "deploy/Caddyfile", ".streamlit/config.toml", ".github/dependabot.yml",
+    ".github/workflows/security.yml", ".github/workflows/codeql.yml",
+    "scripts/check_secrets.py", "scripts/check_git_history.py",
 )
 ARQUIVOS_VERIFICADORES = {"scripts/check_release.py"}
 
@@ -61,6 +63,9 @@ def main():
     auditoria_historico = executar(sys.executable, "scripts/check_git_history.py")
     if auditoria_historico.returncode:
         erros.append(auditoria_historico.stdout.strip() or "Histórico Git não passou na auditoria.")
+    auditoria_segredos = executar(sys.executable, "scripts/check_secrets.py")
+    if auditoria_segredos.returncode:
+        erros.append(auditoria_segredos.stdout.strip() or "Arquivos não passaram na auditoria de segredos.")
     if erros:
         print("RELEASE BLOQUEADA")
         for erro in erros: print(f"- {erro}")
