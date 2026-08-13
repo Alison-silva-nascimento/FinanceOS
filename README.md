@@ -1,8 +1,5 @@
 # FinanceOS
 
-<p align="center">
-  <img src="docs/screenshots/logo-financeos.png" alt="FinanceOS — Controle, planeje, alcance" width="260">
-</p>
 
 
 ## Visão geral
@@ -16,6 +13,9 @@
   <img src="docs/screenshots/dashboard-analytics-demo.png" alt="Raio-X financeiro do FinanceOS com gráficos e análises do mês" width="49%">
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/login-financeos-demo.png" alt="Nova tela de autenticação do FinanceOS" width="100%">
+</p>
 <p align="center"><sub>Interface exibida com dados exclusivamente demonstrativos.</sub></p>
 
 > Plataforma web de gestão financeira pessoal construída com Python e Streamlit.

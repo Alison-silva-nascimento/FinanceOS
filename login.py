@@ -1,6 +1,17 @@
+from base64 import b64encode
+from pathlib import Path
+
 import streamlit as st
 
 from auth import autenticar, criar_usuario, login_bloqueado, possui_usuario, registrar_falha_login
+
+
+def _logo_financeos():
+    """Retorna a marca local como data URI, sem depender de serviço externo."""
+    caminho = Path(__file__).resolve().parent / "static" / "financeos-login-logo.png"
+    if not caminho.exists():
+        return ""
+    return f"data:image/png;base64,{b64encode(caminho.read_bytes()).decode('ascii')}"
 
 
 def tela_login():
@@ -184,21 +195,134 @@ def tela_login():
             div[data-baseweb="tab-list"] { margin-left:auto; margin-right:auto; }
             .login-trust { justify-content:center; flex-wrap:wrap; gap:.45rem .75rem; text-align:center; }
         }
+
+        /* Apresentação da marca: inspirada em landing pages financeiras,
+           preservando integralmente as cores e a identidade do FinanceOS. */
+        [data-testid="stMainBlockContainer"] {
+            max-width: 1180px;
+            padding-top: 4.5rem;
+            padding-bottom: 4rem;
+        }
+        [data-testid="stMainBlockContainer"] > div > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+            align-items: center;
+            gap: clamp(2rem, 5vw, 5rem) !important;
+        }
+        .login-brand-panel {
+            position: relative;
+            overflow: hidden;
+            min-height: 620px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(2rem, 4vw, 3.5rem);
+            border: 1px solid rgba(56, 189, 248, .22);
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at 18% 12%, rgba(45, 212, 191, .20), transparent 30%),
+                radial-gradient(circle at 92% 88%, rgba(37, 99, 235, .28), transparent 36%),
+                linear-gradient(145deg, rgba(12, 35, 61, .98), rgba(7, 22, 39, .98));
+            box-shadow: 0 34px 90px rgba(0, 5, 15, .38);
+        }
+        .login-brand-panel::before,.login-brand-panel::after {
+            content: "";
+            position: absolute;
+            border: 1px solid rgba(56, 189, 248, .12);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .login-brand-panel::before { width:24rem; height:24rem; right:-13rem; top:-12rem; }
+        .login-brand-panel::after { width:18rem; height:18rem; left:-10rem; bottom:-9rem; }
+        .login-brand-logo {
+            position: relative;
+            z-index: 1;
+            display: block;
+            width: min(100%, 340px);
+            margin: 0 auto 2.1rem;
+            border-radius: 22px;
+            filter: drop-shadow(0 20px 34px rgba(0, 0, 0, .35));
+        }
+        .login-brand-kicker {
+            position:relative; z-index:1; color:#67e8f9; font-size:.78rem;
+            font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+        }
+        .login-brand-title {
+            position:relative; z-index:1; max-width:31rem; margin:.85rem 0 1rem;
+            color:#f8fafc; font-size:clamp(2rem,3.5vw,3.25rem); font-weight:820;
+            letter-spacing:-.055em; line-height:1.04;
+        }
+        .login-brand-title span { color:#2dd4bf; }
+        .login-brand-copy {
+            position:relative; z-index:1; max-width:30rem; color:#b8c7da;
+            font-size:1rem; line-height:1.65;
+        }
+        .login-brand-points {
+            position:relative; z-index:1; display:flex; flex-wrap:wrap;
+            gap:.6rem; margin-top:1.6rem;
+        }
+        .login-brand-points span {
+            padding:.48rem .7rem; border:1px solid rgba(103,232,249,.18);
+            border-radius:999px; background:rgba(8,145,178,.10);
+            color:#c8f7ff; font-size:.74rem; font-weight:650;
+        }
+        .login-access-heading {
+            margin:0 0 .45rem; color:#f8fafc; font-size:clamp(1.55rem,2.2vw,2.1rem);
+            font-weight:780; letter-spacing:-.035em;
+        }
+        .login-access-copy { margin:0 0 1.4rem; color:#94a3b8; line-height:1.55; }
+
+        @media (max-width:700px) {
+            .login-brand-panel {
+                min-height:auto; width:min(100%,32rem); margin:0 auto .65rem;
+                padding:1.35rem 1.2rem; border-radius:18px; text-align:center;
+            }
+            .login-brand-logo { width:150px; margin-bottom:.85rem; border-radius:14px; }
+            .login-brand-kicker { font-size:.68rem; }
+            .login-brand-title {
+                margin:.55rem auto .65rem; font-size:1.65rem; letter-spacing:-.035em;
+            }
+            .login-brand-copy { margin:0 auto; font-size:.88rem; line-height:1.5; }
+            .login-brand-points { display:none; }
+            .login-access-heading,.login-access-copy {
+                width:min(100%,32rem); margin-left:auto; margin-right:auto; text-align:center;
+            }
+            .login-access-heading { margin-top:.6rem; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    _, coluna, _ = st.columns([1, 1.35, 1])
+    logo = _logo_financeos()
+    logo_html = f'<img class="login-brand-logo" src="{logo}" alt="FinanceOS">' if logo else ""
+    painel_marca, coluna = st.columns([1.08, .92], gap="large")
+
+    with painel_marca:
+        st.markdown(
+            f"""
+            <section class="login-brand-panel" aria-label="Apresentação do FinanceOS">
+                {logo_html}
+                <div class="login-brand-kicker">Gestão financeira pessoal</div>
+                <div class="login-brand-title">Controle hoje.<br><span>Planeje amanhã.</span></div>
+                <div class="login-brand-copy">
+                    Receitas, despesas, cartões e objetivos reunidos em uma experiência clara,
+                    segura e feita para suas decisões.
+                </div>
+                <div class="login-brand-points">
+                    <span>✓ Visão completa</span>
+                    <span>✓ Dados protegidos</span>
+                    <span>✓ Controle em um só lugar</span>
+                </div>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with coluna:
         st.markdown(
             """
             <div class="login-eyebrow">✦ &nbsp; Gestão financeira pessoal</div>
-            <div class="login-title">Seu dinheiro,<br><span>com clareza.</span></div>
-            <div class="login-description">
-                Organize receitas, despesas e objetivos em um só lugar, com controle e privacidade.
-            </div>
+            <div class="login-access-heading">Seu dinheiro, com clareza.</div>
+            <div class="login-access-copy">Entre na sua conta ou crie seu acesso ao FinanceOS.</div>
             """,
             unsafe_allow_html=True,
         )
