@@ -1,5 +1,10 @@
 # FinanceOS
 
+<p align="center">
+  <img src="docs/screenshots/logo-financeos.png" alt="FinanceOS — Controle, planeje, alcance" width="260">
+</p>
+
+
 ## Visão geral
 
 <p align="center">
